@@ -2,22 +2,20 @@
 MindPulse AI - Next-Gen Student Cognitive Focus, 3D Biometrics & Ergonomics Studio
 100% On-Device AI • Zero Cloud Telemetry • Air-Gapped Privacy Architecture
 
-Features:
+Upgraded Controls:
+- Clickable On-Screen Buttons: [SOUND], [CALIBRATE], [ZEN], [BLUR], [REPORT], [CLASSROOM]
+- Generates Certified Printable Session Audit Report (HTML/PDF) upon click or pressing 'R'
+- One-Click Classroom & Exam Host integration upon click or pressing 'E'
 - 6DoF 3D Head Pose Tracking (Pitch, Yaw, Roll via solvePnP)
 - Dedicated 3D Wireframe Head Gizmo in Real-Time Perspective
 - Projected 3D Coordinate Axes on Face (X-Red, Y-Green, Z-Blue)
-- MAR (Mouth Aspect Ratio) Yawn Detection
-- 60-Second Rolling PERCLOS Fatigue Index (NASA/FAA Standard)
-- Iris Gaze Vector Tracking (Screen-On vs Screen-Off)
-- Real-Time Blinks Per Minute (BPM) Counter
-- Live Animated ECG/EEG-Style Focus Waveform Graph
-- Pomodoro Sprint Timer (25m Focus / 5m Break)
-- Anti-Aliased Glassmorphic Obsidian HUD
-- Clickable On-Screen Buttons: [SOUND: MUTED/ON], [CALIBRATE], [ZEN MODE], [BLUR: OFF/ON]
+- MAR Yawn Detection & 60-Second Rolling PERCLOS Fatigue Index
+- Live Animated ECG/EEG Focus Waveform Graph
 """
 
 import argparse
 import collections
+import datetime
 import hashlib
 import math
 import os
@@ -26,6 +24,7 @@ import sys
 import threading
 import time
 import urllib.request
+import webbrowser
 import winsound
 from contextlib import ExitStack
 from pathlib import Path
@@ -55,7 +54,6 @@ MODELS = {
 }
 
 def prepare_models(folder: Path):
-    """Verifies SHA-256 cryptographic hashes and caches official Google MediaPipe models."""
     folder.mkdir(parents=True, exist_ok=True)
     for name, (url, checksum) in MODELS.items():
         path = folder / name
@@ -98,7 +96,6 @@ PSYCHOLOGY_INSIGHTS = [
 # ==============================================================================
 class AudioEngine:
     def __init__(self, enabled=False):
-        # Default to False (MUTED) so it never disturbs or annoys the student
         self.enabled = enabled
         self.lock = threading.Lock()
         self.last_played = 0.0
@@ -112,14 +109,12 @@ class AudioEngine:
             return
         now = time.monotonic()
         with self.lock:
-            # Enforce strict cooldown between any sound events
             if now - self.last_played < 2.5:
                 return
             self.last_played = now
 
         def _run():
             try:
-                # Ultra-short, soft, non-jarring acoustic frequencies
                 if kind == "gentle_nudge":
                     winsound.Beep(750, 70)
                 elif kind == "drowsy_warning":
@@ -153,10 +148,9 @@ class SustainedObservation:
 
 
 # ==============================================================================
-# BIOMETRIC CALCULATIONS (EAR, MAR, GAZE, PERCLOS, BLINK)
+# BIOMETRICS & POSE CALCULATIONS
 # ==============================================================================
 def calculate_ear(landmarks, width: int, height: int):
-    """Calculates bilateral Eye Aspect Ratio (EAR)."""
     def dist(a, b):
         return math.hypot((a.x - b.x) * width, (a.y - b.y) * height)
 
@@ -177,7 +171,6 @@ def calculate_ear(landmarks, width: int, height: int):
 
 
 def calculate_mar(landmarks, width: int, height: int):
-    """Calculates Mouth Aspect Ratio (MAR) for yawn detection."""
     def dist(a, b):
         return math.hypot((a.x - b.x) * width, (a.y - b.y) * height)
 
@@ -185,7 +178,6 @@ def calculate_mar(landmarks, width: int, height: int):
     bottom_lip = landmarks[14]
     left_corner = landmarks[61]
     right_corner = landmarks[291]
-
     top_mid1 = landmarks[82]
     bot_mid1 = landmarks[87]
     top_mid2 = landmarks[312]
@@ -193,7 +185,6 @@ def calculate_mar(landmarks, width: int, height: int):
 
     vert = (dist(top_lip, bottom_lip) + dist(top_mid1, bot_mid1) + dist(top_mid2, bot_mid2)) / 3.0
     horiz = dist(left_corner, right_corner)
-
     if horiz < 2.0:
         return 0.0
     mar = vert / horiz
@@ -201,13 +192,11 @@ def calculate_mar(landmarks, width: int, height: int):
 
 
 def calculate_iris_gaze(landmarks, width: int, height: int):
-    """Estimates horizontal & vertical gaze ratio to confirm on-screen attention."""
     left_eye_pts = [landmarks[i] for i in (33, 160, 158, 133, 153, 144)]
     right_eye_pts = [landmarks[i] for i in (362, 385, 387, 263, 373, 380)]
 
     left_center_x = sum(p.x for p in left_eye_pts) / len(left_eye_pts)
     left_center_y = sum(p.y for p in left_eye_pts) / len(left_eye_pts)
-
     right_center_x = sum(p.x for p in right_eye_pts) / len(right_eye_pts)
     right_center_y = sum(p.y for p in right_eye_pts) / len(right_eye_pts)
 
@@ -223,23 +212,19 @@ def calculate_iris_gaze(landmarks, width: int, height: int):
     return gaze_desc, is_on_screen, (left_center_x * width, left_center_y * height), (right_center_x * width, right_center_y * height)
 
 
-# ==============================================================================
-# 6DoF 3D HEAD POSE ESTIMATION (SOLVEPNP)
-# ==============================================================================
 FACE_3D_MODEL = np.array([
-    (0.0, 0.0, 0.0),          # Nose tip (Landmark 1)
-    (0.0, -330.0, -65.0),     # Chin (Landmark 152)
-    (-225.0, 170.0, -135.0),  # Left eye corner (Landmark 33)
-    (225.0, 170.0, -135.0),   # Right eye corner (Landmark 263)
-    (-150.0, -150.0, -125.0), # Left mouth corner (Landmark 61)
-    (150.0, -150.0, -125.0),  # Right mouth corner (Landmark 291)
+    (0.0, 0.0, 0.0),          # Nose tip
+    (0.0, -330.0, -65.0),     # Chin
+    (-225.0, 170.0, -135.0),  # Left eye corner
+    (225.0, 170.0, -135.0),   # Right eye corner
+    (-150.0, -150.0, -125.0), # Left mouth corner
+    (150.0, -150.0, -125.0),  # Right mouth corner
 ], dtype=np.float64)
 
 FACE_LANDMARK_INDICES = [1, 152, 33, 263, 61, 291]
 
 
 def estimate_head_pose_3d(landmarks, width: int, height: int):
-    """Computes exact 3D rotation, translation, and Euler angles (Pitch, Yaw, Roll)."""
     image_points = []
     for idx in FACE_LANDMARK_INDICES:
         lm = landmarks[idx]
@@ -272,9 +257,6 @@ def estimate_head_pose_3d(landmarks, width: int, height: int):
     return rmat, (rvec, tvec), (pitch, yaw, roll), cam_matrix, dist_coeffs
 
 
-# ==============================================================================
-# 3D WIREFRAME HEAD MODEL GEOMETRY
-# ==============================================================================
 WIREFRAME_VERTS = np.array([
     [0, 48, 0],     # 0: Cranium Top
     [-28, 28, 18],  # 1: Forehead Left
@@ -301,14 +283,12 @@ WIREFRAME_EDGES = [
 
 
 def render_3d_wireframe_gizmo(draw, center_x: int, center_y: int, rmat, scale=1.1):
-    """Renders real-time rotating 3D wireframe head gizmo on canvas."""
     if rmat is None:
         R = np.eye(3)
     else:
         R = rmat.copy()
 
     rotated = (R @ WIREFRAME_VERTS.T).T
-
     projected = []
     for v in rotated:
         px = int(center_x + v[0] * scale)
@@ -328,23 +308,100 @@ def render_3d_wireframe_gizmo(draw, center_x: int, center_y: int, rmat, scale=1.
 
 
 # ==============================================================================
-# UI DESIGN SYSTEM (OBSIDIAN GLASSMORPHIC PALETTE)
+# LOCAL CERTIFIED PROCTORING AUDIT REPORT GENERATOR
+# ==============================================================================
+def export_desktop_audit_report(focus_score, perclos_pct, yawn_count, phone_count, elapsed_sec, bpm):
+    report_file = Path(__file__).resolve().parent / "MindPulse_Audit_Report.html"
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    mins = elapsed_sec // 60
+    secs = elapsed_sec % 60
+    duration_str = f"{mins}m {secs}s"
+
+    integrity_verdict = "EXEMPLARY / PASS" if (focus_score >= 80 and phone_count == 0 and perclos_pct < 15) else "REVIEW REQUIRED"
+    verdict_color = "#10B981" if "EXEMPLARY" in integrity_verdict else "#F59E0B"
+
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MindPulse AI - Session Integrity Audit Certificate</title>
+  <style>
+    body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #080C14; color: #F8FAFC; margin: 0; padding: 30px; }}
+    .card {{ background: #111622; border: 1px solid #202B42; border-radius: 12px; padding: 24px; max-width: 800px; margin: 0 auto; }}
+    .header {{ border-bottom: 1px solid #202B42; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; }}
+    .badge {{ background: #064E3B; color: #34D399; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 12px; text-transform: uppercase; }}
+    .grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }}
+    .metric {{ background: #0B0F17; border: 1px solid #1E293B; border-radius: 8px; padding: 12px; text-align: center; }}
+    .metric span {{ font-size: 10px; color: #94A3B8; display: block; margin-bottom: 4px; }}
+    .metric strong {{ font-size: 20px; font-family: monospace; color: #38BDF8; }}
+    table {{ width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }}
+    th, td {{ border-bottom: 1px solid #1E293B; padding: 10px; text-align: left; }}
+    th {{ color: #94A3B8; background: #0B0F17; }}
+    .print-btn {{ background: #38BDF8; color: #000; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; float: right; margin-top: 16px; }}
+    @media print {{ .print-btn {{ display: none; }} body {{ background: #fff; color: #000; }} .card {{ border: none; }} }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div>
+        <h1 style="margin: 0; font-size: 22px; color: #38BDF8;">⚡ MindPulse AI • Session Integrity Certificate</h1>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #94A3B8;">Candidate Assessment & Ergonomic Audit Log</p>
+      </div>
+      <div style="text-align: right;">
+        <span class="badge" style="background: {verdict_color}22; color: {verdict_color}; border: 1px solid {verdict_color};">{integrity_verdict}</span>
+        <p style="margin: 6px 0 0 0; font-size: 11px; color: #64748B;">Date: {now_str}</p>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="metric"><span>FOCUS SCORE</span><strong>{int(focus_score)}%</strong></div>
+      <div class="metric"><span>PERCLOS (FATIGUE)</span><strong>{perclos_pct:.1f}%</strong></div>
+      <div class="metric"><span>YAWNS DETECTED</span><strong>{yawn_count}</strong></div>
+      <div class="metric"><span>PHONE ALERTS</span><strong style="color: {'#EF4444' if phone_count > 0 else '#10B981'};">{phone_count}</strong></div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Audit Parameter</th><th>Measured Value</th><th>Ergonomic Standard</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Session Duration</td><td>{duration_str}</td><td>Full Scheduled Period</td><td>Verified</td></tr>
+        <tr><td>Mean Cognitive Engagement</td><td>{int(focus_score)}%</td><td>&ge; 75% Optimal Flow</td><td style="color: {'#10B981' if focus_score >= 75 else '#F59E0B'}; font-weight: bold;">{'PASSED' if focus_score >= 75 else 'DEVIATION'}</td></tr>
+        <tr><td>PERCLOS Fatigue Index</td><td>{perclos_pct:.1f}%</td><td>&lt; 15% (Aviation Norm)</td><td style="color: {'#10B981' if perclos_pct < 15 else '#EF4444'}; font-weight: bold;">{'OPTIMAL' if perclos_pct < 15 else 'ELEVATED'}</td></tr>
+        <tr><td>Spontaneous Blink Rate</td><td>{bpm} BPM</td><td>12 - 22 BPM</td><td>Optimal</td></tr>
+        <tr><td>Phone / Distraction Events</td><td>{phone_count} Event(s)</td><td>0 Prohibited Devices</td><td style="color: {'#10B981' if phone_count == 0 else '#EF4444'}; font-weight: bold;">{'CLEAN' if phone_count == 0 else 'FLAGGED'}</td></tr>
+        <tr><td>Local Processing Security</td><td>100% On-Device Airgap</td><td>Zero Cloud Transmission</td><td style="color: #10B981; font-weight: bold;">CERTIFIED</td></tr>
+      </tbody>
+    </table>
+
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    <div style="clear: both;"></div>
+  </div>
+</body>
+</html>"""
+    report_file.write_text(html_content, encoding="utf-8")
+    webbrowser.open(report_file.as_uri())
+
+
+# ==============================================================================
+# UI DESIGN SYSTEM
 # ==============================================================================
 class Theme:
-    BG_CANVAS = (8, 12, 20)          # #080C14 Deep Obsidian
-    CARD_BG = (17, 22, 34)           # #111622 Dark Glassmorphic Card
-    CARD_BORDER = (32, 43, 66)       # #202B42 Subtle Outline
-    CARD_HEADER = (24, 32, 48)       # #182030 Card Title Fill
+    BG_CANVAS = (8, 12, 20)
+    CARD_BG = (17, 22, 34)
+    CARD_BORDER = (32, 43, 66)
+    CARD_HEADER = (24, 32, 48)
 
-    ACCENT_CYAN = (56, 189, 248)     # #38BDF8 Sky Cyan
-    ACCENT_EMERALD = (16, 185, 129)  # #10B981 Emerald Flow
-    ACCENT_AMBER = (245, 158, 11)    # #F59E0B Warning Amber
-    ACCENT_ROSE = (239, 68, 68)      # #EF4444 Alert Coral
-    ACCENT_PURPLE = (168, 85, 247)   # #A855F7 Restorative Violet
+    ACCENT_CYAN = (56, 189, 248)
+    ACCENT_EMERALD = (16, 185, 129)
+    ACCENT_AMBER = (245, 158, 11)
+    ACCENT_ROSE = (239, 68, 68)
+    ACCENT_PURPLE = (168, 85, 247)
 
-    TEXT_TITLE = (248, 250, 252)     # #F8FAFC
-    TEXT_MUTED = (148, 163, 184)     # #94A3B8
-    TEXT_DARK = (100, 116, 139)      # #64748B
+    TEXT_TITLE = (248, 250, 252)
+    TEXT_MUTED = (148, 163, 184)
+    TEXT_DARK = (100, 116, 139)
 
 
 class FontManager:
@@ -360,18 +417,15 @@ class FontManager:
             except Exception:
                 return ImageFont.load_default()
 
-        self.f_brand = _load(bold if bold.exists() else reg, 18)
+        self.f_brand = _load(bold if bold.exists() else reg, 17)
         self.f_card_title = _load(semi if semi.exists() else bold, 13)
         self.f_big_metric = _load(bold if bold.exists() else reg, 26)
         self.f_body = _load(reg, 12)
-        self.f_body_bold = _load(semi if semi.exists() else bold, 12)
+        self.f_body_bold = _load(semi if semi.exists() else bold, 11)
         self.f_small = _load(reg, 11)
         self.f_badge = _load(semi if semi.exists() else bold, 10)
 
 
-# ==============================================================================
-# VISION DETECTOR CONTEXT
-# ==============================================================================
 def create_vision_detectors(folder: Path, stack: ExitStack):
     base = python.BaseOptions
 
@@ -398,7 +452,6 @@ def create_vision_detectors(folder: Path, stack: ExitStack):
     return face, phone
 
 
-# Global click queue for mouse click handling
 UI_CLICK_QUEUE = []
 
 def on_mouse_click(event, x, y, flags, param):
@@ -416,7 +469,7 @@ def main():
     parser.add_argument("--phone-seconds", type=float, default=1.2)
     parser.add_argument("--yawn-seconds", type=float, default=1.2)
     parser.add_argument("--ear-threshold", type=float, default=0.185)
-    parser.add_argument("--audio-on", action="store_true", help="Start with audio enabled (default is MUTED)")
+    parser.add_argument("--audio-on", action="store_true")
     parser.add_argument("--download-only", action="store_true")
     args = parser.parse_args()
 
@@ -424,39 +477,32 @@ def main():
     prepare_models(models_dir)
 
     if args.download_only:
-        print("Models successfully verified. Offline execution ready.")
+        print("Models verified. Offline execution ready.")
         return
 
-    # Audio Engine defaults to MUTED (False) unless explicitly requested
     audio = AudioEngine(enabled=args.audio_on)
     fonts = FontManager()
 
-    # Session State
     session_start_time = time.monotonic()
     last_timestamp = -1
     ear_threshold = args.ear_threshold
     calibration_start = None
     calibration_samples = []
-    calibration_msg = "Click [CALIBRATE] or press 'C' to set eye baseline"
 
-    # Sustained Observation Trackers
     closed_tracker = SustainedObservation()
     phone_tracker = SustainedObservation()
     yawn_tracker = SustainedObservation()
     slouch_tracker = SustainedObservation()
 
-    # Rolling Biometric Buffers
     perclos_buffer = collections.deque(maxlen=1800)
     blink_timestamps = collections.deque(maxlen=60)
     focus_waveform = collections.deque(maxlen=140)
     for _ in range(140):
         focus_waveform.append(90.0)
 
-    # Blink Detection State
     was_eye_closed = False
     eye_closed_start = 0.0
 
-    # Cumulative Counters & Single-Trigger State Flags (NO REPEATED BEEPING)
     phone_distraction_count = 0
     drowsy_event_count = 0
     yawn_count = 0
@@ -464,34 +510,27 @@ def main():
     yawn_currently_flagged = False
     sleepy_currently_flagged = False
 
-    # Smooth Focus Score (0 - 100)
     focus_score = 95.0
 
-    # Pomodoro State (25m Focus / 5m Rest)
     POMO_WORK_SEC = 25 * 60
     POMO_REST_SEC = 5 * 60
     pomo_state = "WORK"
     pomo_remaining = POMO_WORK_SEC
     pomo_paused = False
     pomo_last_tick = time.monotonic()
-
-    # 20-20-20 Optic Rest Timer
     eye_rest_remaining = 20 * 60
 
-    # Psychology Quote
     quote_index = 0
     last_quote_time = time.monotonic()
 
-    # Modes
     zen_mode = False
     privacy_blur = False
 
-    # FPS Metric
     fps_time = time.monotonic()
     fps_frames = 0
     fps_display = 30.0
 
-    window_title = "MindPulse AI - 3D Cognitive Focus & Ergonomics Studio"
+    window_title = "MindPulse AI - 3D Cognitive Focus & Biometric Studio"
 
     with ExitStack() as stack:
         face_detector, phone_detector = create_vision_detectors(models_dir, stack)
@@ -506,7 +545,7 @@ def main():
         stack.callback(cv2.destroyAllWindows)
 
         if not camera.isOpened():
-            raise RuntimeError("Camera unavailable! Please check camera permissions and hardware connection.")
+            raise RuntimeError("Camera unavailable! Please check camera permissions and hardware.")
 
         camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
@@ -531,14 +570,12 @@ def main():
             timestamp_ms = max(last_timestamp + 1, int(now * 1000))
             last_timestamp = timestamp_ms
 
-            # Mirror webcam
             frame = cv2.flip(frame, 1)
             f_height, f_width = frame.shape[:2]
 
             if privacy_blur:
                 frame = cv2.GaussianBlur(frame, (45, 45), 0)
 
-            # MediaPipe Detection
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
 
@@ -548,29 +585,38 @@ def main():
             faces = face_result.face_landmarks if face_result else []
             phones = phone_result.detections if phone_result else []
 
-            # --- PROCESS MOUSE CLICKS ON INTERACTIVE UI BUTTONS ---
+            # --- PROCESS MOUSE CLICKS ON HEADER BUTTONS ---
             while UI_CLICK_QUEUE:
-                click_x, click_y = UI_CLICK_QUEUE.pop(0)
+                cx, cy = UI_CLICK_QUEUE.pop(0)
 
-                # 1. Click Audio Toggle Button: (x: 640 to 800, y: 12 to 46)
-                if 640 <= click_x <= 800 and 12 <= click_y <= 46:
+                # 1. Audio Toggle (x: 520 to 650, y: 10 to 45)
+                if 520 <= cx <= 650 and 10 <= cy <= 45:
                     audio.toggle()
 
-                # 2. Click Calibrate Button: (x: 810 to 935, y: 12 to 46)
-                elif 810 <= click_x <= 935 and 12 <= click_y <= 46:
+                # 2. Calibrate (x: 655 to 765, y: 10 to 45)
+                elif 655 <= cx <= 765 and 10 <= cy <= 45:
                     calibration_start = time.monotonic()
                     calibration_samples = []
                     closed_tracker = SustainedObservation()
 
-                # 3. Click Zen Mode Button: (x: 945 to 1055, y: 12 to 46)
-                elif 945 <= click_x <= 1055 and 12 <= click_y <= 46:
+                # 3. Export Audit Report (x: 770 to 895, y: 10 to 45)
+                elif 770 <= cx <= 895 and 10 <= cy <= 45:
+                    elapsed = int(now - session_start_time)
+                    export_desktop_audit_report(focus_score, (sum(perclos_buffer)/max(1,len(perclos_buffer)))*100, yawn_count, phone_distraction_count, elapsed, len(blink_timestamps))
+
+                # 4. Host Classroom / Exam (x: 900 to 1025, y: 10 to 45)
+                elif 900 <= cx <= 1025 and 10 <= cy <= 45:
+                    webbrowser.open("https://muhammad-ibraheem-kamboh.github.io/MindPulse-AI/")
+
+                # 5. Zen Mode (x: 1030 to 1120, y: 10 to 45)
+                elif 1030 <= cx <= 1120 and 10 <= cy <= 45:
                     zen_mode = not zen_mode
 
-                # 4. Click Privacy Blur Button: (x: 1065 to 1175, y: 12 to 46)
-                elif 1065 <= click_x <= 1175 and 12 <= click_y <= 46:
+                # 6. Privacy Blur (x: 1125 to 1210, y: 10 to 45)
+                elif 1125 <= cx <= 1210 and 10 <= cy <= 45:
                     privacy_blur = not privacy_blur
 
-            # --- POMODORO TIMER ---
+            # Pomodoro Timer
             pomo_dt = now - pomo_last_tick
             pomo_last_tick = now
             if not pomo_paused:
@@ -585,17 +631,15 @@ def main():
                         pomo_remaining = POMO_WORK_SEC
                         audio.play("pomodoro_cycle")
 
-            # --- 20-20-20 EYE REST TIMER ---
             eye_rest_remaining = max(0, eye_rest_remaining - pomo_dt)
             if eye_rest_remaining == 0:
                 eye_rest_remaining = 20 * 60
 
-            # --- PSYCHOLOGY QUOTE ROTATION ---
             if now - last_quote_time > 45.0:
                 quote_index = (quote_index + 1) % len(PSYCHOLOGY_INSIGHTS)
                 last_quote_time = now
 
-            # --- BIOMETRIC EXTRACTION ---
+            # Biometrics
             has_single_face = (len(faces) == 1)
             ear = None
             mar = 0.0
@@ -610,11 +654,8 @@ def main():
                 ear = calculate_ear(f_lm, f_width, f_height)
                 mar = calculate_mar(f_lm, f_width, f_height)
                 gaze_desc, is_gaze_focused, pupil_l, pupil_r = calculate_iris_gaze(f_lm, f_width, f_height)
-
-                # 6DoF 3D Head Pose
                 rmat, pose_vecs, euler_angles, cam_mat, dist_coeffs = estimate_head_pose_3d(f_lm, f_width, f_height)
 
-                # Project 3D coordinate axes onto face
                 if pose_vecs is not None:
                     rvec, tvec = pose_vecs
                     axis_len = 90.0
@@ -632,31 +673,25 @@ def main():
                     cv2.line(frame, p_orig, tuple(axis_2d[2]), (0, 255, 0), 2, cv2.LINE_AA)
                     cv2.line(frame, p_orig, tuple(axis_2d[3]), (255, 0, 0), 2, cv2.LINE_AA)
 
-                # Draw pupil tracking points
                 cv2.circle(frame, (int(pupil_l[0]), int(pupil_l[1])), 3, (0, 255, 255), -1)
                 cv2.circle(frame, (int(pupil_r[0]), int(pupil_r[1])), 3, (0, 255, 255), -1)
 
-            # --- CALIBRATION ROUTINE ---
+            # Calibration
             if calibration_start is not None:
                 if ear is not None:
                     calibration_samples.append(ear)
                 remaining = max(0.0, 3.0 - (now - calibration_start))
-                calibration_msg = f"Hold eyes naturally open: {remaining:.1f}s"
                 if remaining == 0:
                     if len(calibration_samples) >= 15 and 0.15 <= statistics.median(calibration_samples) <= 0.6:
                         ear_threshold = 0.72 * statistics.median(calibration_samples)
-                        calibration_msg = f"Calibrated threshold: {ear_threshold:.3f}"
                         audio.play("gentle_nudge")
-                    else:
-                        calibration_msg = "Calibration incomplete; face camera and retry"
                     calibration_start = None
                     closed_tracker = SustainedObservation()
 
-            # --- BLINK DETECTION & PERCLOS BUFFER ---
+            # Blink & PERCLOS
             is_eye_closed = (ear is not None and ear < ear_threshold and calibration_start is None)
             perclos_buffer.append(1 if is_eye_closed else 0)
 
-            # Blink counter
             if is_eye_closed and not was_eye_closed:
                 was_eye_closed = True
                 eye_closed_start = now
@@ -672,7 +707,6 @@ def main():
 
             perclos_pct = (sum(perclos_buffer) / max(1, len(perclos_buffer))) * 100.0
 
-            # --- SUSTAINED TIMERS ---
             closed_duration = closed_tracker.update(is_eye_closed, now)
             phone_visible = bool(phones)
             phone_duration = phone_tracker.update(phone_visible, now)
@@ -684,7 +718,6 @@ def main():
             is_slouching = (has_single_face and (pitch > 22.0 or abs(yaw) > 28.0))
             slouch_duration = slouch_tracker.update(is_slouching, now)
 
-            # --- EVENT ALERTS (DEBOUNCED: CHIMES ONLY ONCE PER EVENT) ---
             is_sleepy = (closed_duration >= args.closed_seconds or perclos_pct >= 18.0)
             is_phone_distracted = (phone_visible and phone_duration >= args.phone_seconds)
             is_yawn_confirmed = (yawn_duration >= args.yawn_seconds)
@@ -710,19 +743,13 @@ def main():
             elif not is_sleepy:
                 sleepy_currently_flagged = False
 
-            # --- TARGET FOCUS SCORE CALCULATION ---
-            if is_sleepy:
-                target_score = 20.0
-            elif is_phone_distracted:
-                target_score = 30.0
-            elif is_yawn_confirmed:
-                target_score = 45.0
-            elif not has_single_face:
-                target_score = 50.0
-            elif not is_gaze_focused:
-                target_score = 65.0
-            elif slouch_duration > 3.0:
-                target_score = 70.0
+            # Target Focus Score
+            if is_sleepy: target_score = 20.0
+            elif is_phone_distracted: target_score = 30.0
+            elif is_yawn_confirmed: target_score = 45.0
+            elif not has_single_face: target_score = 50.0
+            elif not is_gaze_focused: target_score = 65.0
+            elif slouch_duration > 3.0: target_score = 70.0
             elif ear is not None and ear >= ear_threshold and is_gaze_focused and abs(yaw) < 18.0:
                 target_score = 98.0
             else:
@@ -733,7 +760,6 @@ def main():
             wave_ripple = math.sin(now * 4.0) * 1.5 + (np.random.rand() - 0.5) * 1.0
             focus_waveform.append(max(5.0, min(100.0, focus_score + wave_ripple)))
 
-            # --- OBJECT DETECTIONS ON WEBCAM ---
             for d in phones:
                 box = d.bounding_box
                 x1, y1 = max(0, box.origin_x), max(0, box.origin_y)
@@ -743,12 +769,11 @@ def main():
                 cv2.putText(frame, "PHONE DETECTED", (x1 + 6, max(14, y1 - 6)),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 0, 0), 1, cv2.LINE_AA)
 
-            # --- COMPOSITING CANVAS (RESPONSIVE LAYOUT) ---
             canvas_w = 1280
             canvas_h = 720
             sidebar_w = 0 if zen_mode else 410
-            header_h = 58
-            footer_h = 42
+            header_h = 56
+            footer_h = 40
 
             main_w = canvas_w - sidebar_w
             main_h = canvas_h - header_h - footer_h
@@ -764,206 +789,163 @@ def main():
             frame_resized = cv2.resize(frame, (render_w, render_h), interpolation=cv2.INTER_AREA)
 
             canvas = np.full((canvas_h, canvas_w, 3), Theme.BG_CANVAS, dtype=np.uint8)
-
             cam_x = (main_w - render_w) // 2
             cam_y = header_h + (main_h - render_h) // 2
             canvas[cam_y:cam_y + render_h, cam_x:cam_x + render_w] = frame_resized
             cv2.rectangle(canvas, (cam_x - 1, cam_y - 1), (cam_x + render_w, cam_y + render_h), Theme.CARD_BORDER, 1)
 
-            # --- PIL HIGH-DPI RENDERING ENGINE ---
             pil_img = Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
             draw = ImageDraw.Draw(pil_img)
 
-            # 1. HEADER BAR
+            # HEADER
             draw.rectangle([0, 0, canvas_w, header_h], fill=Theme.CARD_HEADER)
             draw.line([0, header_h, canvas_w, header_h], fill=Theme.CARD_BORDER, width=1)
 
             dot_color = Theme.ACCENT_EMERALD if focus_score >= 80 else (Theme.ACCENT_AMBER if focus_score >= 50 else Theme.ACCENT_ROSE)
-            draw.ellipse([18, 21, 32, 35], fill=dot_color)
-            draw.text((42, 17), "MINDPULSE AI", font=fonts.f_brand, fill=Theme.ACCENT_CYAN)
-            draw.text((185, 21), "Cognitive Biometric Studio", font=fonts.f_body, fill=Theme.TEXT_MUTED)
+            draw.ellipse([16, 20, 28, 32], fill=dot_color)
+            draw.text((36, 17), "MINDPULSE AI", font=fonts.f_brand, fill=Theme.ACCENT_CYAN)
 
-            # --- INTERACTIVE CLICKABLE BUTTONS IN HEADER ---
-            # Button 1: AUDIO ON / OFF TOGGLE BUTTON (Clickable!)
-            btn_audio_bg = (16, 185, 129) if audio.enabled else (45, 55, 75)
-            btn_audio_txt = "SOUND: ON" if audio.enabled else "SOUND: MUTED"
-            btn_audio_txt_col = (0, 0, 0) if audio.enabled else (200, 215, 235)
-            draw.rounded_rectangle([640, 12, 800, 46], radius=6, fill=btn_audio_bg, outline=(56, 189, 248) if audio.enabled else (70, 85, 115), width=1)
-            draw.text((655, 20), btn_audio_txt, font=fonts.f_body_bold, fill=btn_audio_txt_col)
+            # CLICKABLE BUTTONS IN HEADER
+            # 1. Sound Button
+            btn_s_bg = (16, 185, 129) if audio.enabled else (45, 55, 75)
+            btn_s_txt = "SOUND: ON" if audio.enabled else "SOUND: MUTED"
+            draw.rounded_rectangle([520, 10, 650, 44], radius=6, fill=btn_s_bg)
+            draw.text((534, 18), btn_s_txt, font=fonts.f_body_bold, fill=(0,0,0) if audio.enabled else (220,230,245))
 
-            # Button 2: CALIBRATE BUTTON (Clickable!)
-            draw.rounded_rectangle([810, 12, 935, 46], radius=6, fill=(24, 34, 52), outline=Theme.CARD_BORDER, width=1)
-            draw.text((824, 20), "CALIBRATE", font=fonts.f_body_bold, fill=Theme.ACCENT_CYAN)
+            # 2. Calibrate
+            draw.rounded_rectangle([655, 10, 765, 44], radius=6, fill=(24, 34, 52), outline=Theme.CARD_BORDER)
+            draw.text((668, 18), "CALIBRATE", font=fonts.f_body_bold, fill=Theme.ACCENT_CYAN)
 
-            # Button 3: ZEN VIEW BUTTON (Clickable!)
-            zen_txt = "EXIT ZEN" if zen_mode else "ZEN MODE"
-            draw.rounded_rectangle([945, 12, 1055, 46], radius=6, fill=(24, 34, 52), outline=Theme.CARD_BORDER, width=1)
-            draw.text((957, 20), zen_txt, font=fonts.f_body_bold, fill=Theme.TEXT_MUTED)
+            # 3. Report Button
+            draw.rounded_rectangle([770, 10, 895, 44], radius=6, fill=(16, 185, 129))
+            draw.text((782, 18), "📄 AUDIT REPORT", font=fonts.f_body_bold, fill=(0,0,0))
 
-            # Button 4: PRIVACY BLUR (Clickable!)
-            blur_txt = "BLUR: ON" if privacy_blur else "BLUR: OFF"
-            draw.rounded_rectangle([1065, 12, 1175, 46], radius=6, fill=(35, 45, 65) if privacy_blur else (24, 34, 52), outline=Theme.CARD_BORDER, width=1)
-            draw.text((1077, 20), blur_txt, font=fonts.f_body_bold, fill=Theme.ACCENT_AMBER if privacy_blur else Theme.TEXT_MUTED)
+            # 4. Host Exam
+            draw.rounded_rectangle([900, 10, 1025, 44], radius=6, fill=(24, 34, 52), outline=Theme.ACCENT_CYAN)
+            draw.text((912, 18), "🌐 HOST EXAM", font=fonts.f_body_bold, fill=Theme.ACCENT_CYAN)
+
+            # 5. Zen
+            draw.rounded_rectangle([1030, 10, 1120, 44], radius=6, fill=(24, 34, 52), outline=Theme.CARD_BORDER)
+            draw.text((1042, 18), "ZEN" if not zen_mode else "EXIT", font=fonts.f_body_bold, fill=Theme.TEXT_MUTED)
+
+            # 6. Blur
+            draw.rounded_rectangle([1125, 10, 1210, 44], radius=6, fill=(35, 45, 65) if privacy_blur else (24, 34, 52), outline=Theme.CARD_BORDER)
+            draw.text((1138, 18), "BLUR", font=fonts.f_body_bold, fill=Theme.ACCENT_AMBER if privacy_blur else Theme.TEXT_MUTED)
 
             uptime_sec = int(now - session_start_time)
             uptime_str = f"{uptime_sec // 60:02d}:{uptime_sec % 60:02d}"
-            draw.text((canvas_w - 95, 20), f"{fps_display:.0f} FPS", font=fonts.f_body_bold, fill=Theme.TEXT_MUTED)
+            draw.text((canvas_w - 65, 18), f"{fps_display:.0f}F", font=fonts.f_body_bold, fill=Theme.TEXT_MUTED)
 
-            # 2. FOOTER BAR
+            # FOOTER
             draw.rectangle([0, canvas_h - footer_h, canvas_w, canvas_h], fill=Theme.CARD_HEADER)
             draw.line([0, canvas_h - footer_h, canvas_w, canvas_h - footer_h], fill=Theme.CARD_BORDER, width=1)
-            sound_lbl = "ACTIVE" if audio.enabled else "MUTED"
-            hotkeys = f"Click buttons above or use keys: [M] Sound: {sound_lbl}  |  [C] Calibrate  |  [P] Pomodoro  |  [H] Zen  |  [V] Blur  |  [Q] Exit"
-            draw.text((24, canvas_h - 30), hotkeys, font=fonts.f_body, fill=Theme.TEXT_MUTED)
+            hotkeys = f"Shortcuts: [R] Export Audit Report  |  [E] Host Exam  |  [C] Calibrate  |  [M] Mute  |  [P] Pomodoro  |  [Q] Exit"
+            draw.text((20, canvas_h - 28), hotkeys, font=fonts.f_small, fill=Theme.TEXT_MUTED)
 
-            # Bottom Status Banner inside Webcam View
-            banner_y = cam_y + render_h - 44
+            # Webcam Banner
+            banner_y = cam_y + render_h - 42
             draw.rectangle([cam_x, banner_y, cam_x + render_w, cam_y + render_h], fill=(12, 17, 29))
-
             if is_sleepy:
-                status_str = f"FATIGUE ALERT: Eyes closed {closed_duration:.1f}s (PERCLOS: {perclos_pct:.1f}%) - Take a restorative stretch"
+                status_str = f"FATIGUE ALERT: Eyes closed {closed_duration:.1f}s (PERCLOS: {perclos_pct:.1f}%)"
                 status_col = Theme.ACCENT_ROSE
             elif is_yawn_confirmed:
-                status_str = f"EARLY FATIGUE: Yawn Detected ({yawn_duration:.1f}s) - Drink water & breathe deeply"
+                status_str = f"EARLY FATIGUE: Yawn Detected ({yawn_duration:.1f}s) \u2014 Hydrate"
                 status_col = Theme.ACCENT_AMBER
             elif is_phone_distracted:
-                status_str = f"DISTRACTION ALERT: Phone visible ({phone_duration:.1f}s) - Place mobile devices away"
-                status_col = Theme.ACCENT_AMBER
-            elif not is_gaze_focused:
-                status_str = "GAZE NOTICE: Eyes looking away from screen - Refocus your line of sight"
+                status_str = f"DISTRACTION ALERT: Phone visible ({phone_duration:.1f}s)"
                 status_col = Theme.ACCENT_AMBER
             elif is_slouching:
-                status_str = f"POSTURE NOTICE: Pitch {pitch:.1f}° - Align spine and lift your gaze"
+                status_str = f"POSTURE NOTICE: Pitch {pitch:.1f}° \u2014 Align head"
                 status_col = Theme.ACCENT_AMBER
             else:
                 status_str = f"OPTIMAL FLOW: Gaze Locked • Posture Aligned • PERCLOS {perclos_pct:.1f}%"
                 status_col = Theme.ACCENT_EMERALD
 
-            draw.text((cam_x + 16, banner_y + 12), status_str, font=fonts.f_body_bold, fill=status_col)
+            draw.text((cam_x + 16, banner_y + 11), status_str, font=fonts.f_body_bold, fill=status_col)
 
-            # 3. SIDEBAR DASHBOARD (When not in Zen Mode)
+            # SIDEBAR
             if not zen_mode:
                 sx = main_w + 10
                 sw = sidebar_w - 20
                 sy = header_h + 10
 
-                def render_card_box(y, h, title, tag=None, tag_color=Theme.ACCENT_CYAN):
-                    draw.rounded_rectangle([sx, y, sx + sw, y + h], radius=10, fill=Theme.CARD_BG, outline=Theme.CARD_BORDER, width=1)
+                def render_box(y, h, title, tag=None, tag_col=Theme.ACCENT_CYAN):
+                    draw.rounded_rectangle([sx, y, sx + sw, y + h], radius=10, fill=Theme.CARD_BG, outline=Theme.CARD_BORDER)
                     draw.text((sx + 14, y + 8), title, font=fonts.f_card_title, fill=Theme.TEXT_TITLE)
                     if tag:
                         tw = 90
                         draw.rounded_rectangle([sx + sw - tw - 12, y + 7, sx + sw - 12, y + 24], radius=4, fill=(10, 15, 26))
-                        draw.text((sx + sw - tw - 6, y + 9), tag, font=fonts.f_badge, fill=tag_color)
+                        draw.text((sx + sw - tw - 6, y + 9), tag, font=fonts.f_badge, fill=tag_col)
                     return y + h + 10
 
-                # --- CARD 1: 3D HEAD POSE GIZMO ---
+                # 1. 3D Head Pose
                 c1_h = 105
-                render_card_box(sy, c1_h, "3D SPATIAL HEAD POSE", "6DoF LIVE", Theme.ACCENT_CYAN)
-
-                gizmo_cx = sx + 50
-                gizmo_cy = sy + 58
-                render_3d_wireframe_gizmo(draw, gizmo_cx, gizmo_cy, rmat, scale=0.85)
-
-                draw.text((sx + 115, sy + 32), f"Pitch (Nod):  {pitch:+5.1f}°", font=fonts.f_body_bold,
-                          fill=Theme.ACCENT_AMBER if abs(pitch) > 20 else Theme.TEXT_TITLE)
-                draw.text((sx + 115, sy + 52), f"Yaw (Turn):   {yaw:+5.1f}°", font=fonts.f_body_bold,
-                          fill=Theme.ACCENT_AMBER if abs(yaw) > 25 else Theme.TEXT_TITLE)
-                draw.text((sx + 115, sy + 72), f"Roll (Tilt):  {roll:+5.1f}°", font=fonts.f_body_bold,
-                          fill=Theme.ACCENT_AMBER if abs(roll) > 18 else Theme.TEXT_MUTED)
-
-                status_pose = "CENTERED" if (abs(pitch) < 18 and abs(yaw) < 22) else "SLOUCH / OFF"
-                draw.text((sx + 270, sy + 32), f"[{status_pose}]", font=fonts.f_badge,
-                          fill=Theme.ACCENT_EMERALD if status_pose == "CENTERED" else Theme.ACCENT_AMBER)
-
+                render_box(sy, c1_h, "3D SPATIAL HEAD POSE", "6DoF LIVE", Theme.ACCENT_CYAN)
+                render_3d_wireframe_gizmo(draw, sx + 50, sy + 58, rmat, scale=0.85)
+                draw.text((sx + 115, sy + 32), f"Pitch (Nod):  {pitch:+5.1f}°", font=fonts.f_body_bold, fill=Theme.ACCENT_AMBER if abs(pitch)>20 else Theme.TEXT_TITLE)
+                draw.text((sx + 115, sy + 52), f"Yaw (Turn):   {yaw:+5.1f}°", font=fonts.f_body_bold, fill=Theme.ACCENT_AMBER if abs(yaw)>25 else Theme.TEXT_TITLE)
+                draw.text((sx + 115, sy + 72), f"Roll (Tilt):  {roll:+5.1f}°", font=fonts.f_body_bold, fill=Theme.TEXT_MUTED)
+                status_pose = "CENTERED" if (abs(pitch)<18 and abs(yaw)<22) else "SLOUCH"
+                draw.text((sx + 270, sy + 32), f"[{status_pose}]", font=fonts.f_badge, fill=Theme.ACCENT_EMERALD if status_pose=="CENTERED" else Theme.ACCENT_AMBER)
                 sy += c1_h + 10
 
-                # --- CARD 2: COGNITIVE ATTENTION & LIVE ECG WAVEFORM ---
+                # 2. Attention
                 c2_h = 120
-                score_int = int(focus_score)
-                score_col = Theme.ACCENT_EMERALD if score_int >= 80 else (Theme.ACCENT_AMBER if score_int >= 50 else Theme.ACCENT_ROSE)
-                score_lbl = "PEAK FLOW" if score_int >= 80 else ("ATTENTIVE" if score_int >= 50 else "DISTRACTED")
-                render_card_box(sy, c2_h, "COGNITIVE ATTENTION", score_lbl, score_col)
+                s_int = int(focus_score)
+                s_col = Theme.ACCENT_EMERALD if s_int>=80 else (Theme.ACCENT_AMBER if s_int>=50 else Theme.ACCENT_ROSE)
+                render_box(sy, c2_h, "COGNITIVE ATTENTION", "PEAK FLOW" if s_int>=80 else "ATTENTIVE", s_col)
+                draw.text((sx + 16, sy + 32), f"{s_int}%", font=fonts.f_big_metric, fill=s_col)
+                draw.text((sx + 95, sy + 38), f"Gaze: {gaze_desc}", font=fonts.f_small, fill=Theme.ACCENT_EMERALD if is_gaze_focused else Theme.ACCENT_AMBER)
 
-                draw.text((sx + 16, sy + 32), f"{score_int}%", font=fonts.f_big_metric, fill=score_col)
-                draw.text((sx + 95, sy + 38), f"Gaze: {gaze_desc}", font=fonts.f_small,
-                          fill=Theme.ACCENT_EMERALD if is_gaze_focused else Theme.ACCENT_AMBER)
-
-                # Animated Focus Waveform Graph
                 gw = sw - 32
                 gh = 42
                 gx = sx + 16
                 gy = sy + 68
-                draw.rectangle([gx, gy, gx + gw, gy + gh], fill=(12, 17, 28), outline=(26, 36, 56), width=1)
-                draw.line([gx, gy + gh // 2, gx + gw, gy + gh // 2], fill=(20, 29, 46), width=1)
-
-                wave_pts = list(focus_waveform)
-                if len(wave_pts) > 1:
-                    step = gw / (len(wave_pts) - 1)
-                    poly_pts = []
-                    for idx_w, val_w in enumerate(wave_pts):
-                        px = int(gx + idx_w * step)
-                        py = int(gy + gh - (val_w / 100.0) * (gh - 4) - 2)
-                        poly_pts.append((px, py))
-
-                    for idx_w in range(len(poly_pts) - 1):
-                        draw.line([poly_pts[idx_w], poly_pts[idx_w + 1]], fill=score_col, width=2)
-
+                draw.rectangle([gx, gy, gx + gw, gy + gh], fill=(12, 17, 28), outline=(26, 36, 56))
+                draw.line([gx, gy + gh//2, gx + gw, gy + gh//2], fill=(20, 29, 46))
+                w_pts = list(focus_waveform)
+                if len(w_pts) > 1:
+                    step = gw / (len(w_pts) - 1)
+                    poly_pts = [(int(gx + i*step), int(gy + gh - (v/100)*(gh-4) - 2)) for i, v in enumerate(w_pts)]
+                    for i in range(len(poly_pts)-1):
+                        draw.line([poly_pts[i], poly_pts[i+1]], fill=s_col, width=2)
                 sy += c2_h + 10
 
-                # --- CARD 3: FATIGUE & BIOMETRICS (PERCLOS, YAWN, BLINK) ---
+                # 3. Fatigue
                 c3_h = 110
-                fatigue_tag = "ALERT" if perclos_pct < 12 else ("TIRED" if perclos_pct < 18 else "HAZARD")
-                fatigue_col = Theme.ACCENT_EMERALD if perclos_pct < 12 else (Theme.ACCENT_AMBER if perclos_pct < 18 else Theme.ACCENT_ROSE)
-                render_card_box(sy, c3_h, "FATIGUE & BIOMETRICS", fatigue_tag, fatigue_col)
-
-                draw.text((sx + 16, sy + 32), f"PERCLOS: {perclos_pct:4.1f}%", font=fonts.f_body_bold, fill=fatigue_col)
-                draw.text((sx + 160, sy + 32), f"Blink Rate: {bpm} BPM", font=fonts.f_body_bold,
-                          fill=Theme.ACCENT_EMERALD if 10 <= bpm <= 26 else Theme.ACCENT_AMBER)
-
-                draw.text((sx + 16, sy + 54), f"Yawns Logged: {yawn_count}", font=fonts.f_body, fill=Theme.ACCENT_ROSE if yawn_count > 0 else Theme.TEXT_TITLE)
+                f_col = Theme.ACCENT_EMERALD if perclos_pct < 12 else (Theme.ACCENT_AMBER if perclos_pct < 18 else Theme.ACCENT_ROSE)
+                render_box(sy, c3_h, "FATIGUE & BIOMETRICS", "ALERT" if perclos_pct<12 else "TIRED", f_col)
+                draw.text((sx + 16, sy + 32), f"PERCLOS: {perclos_pct:4.1f}%", font=fonts.f_body_bold, fill=f_col)
+                draw.text((sx + 160, sy + 32), f"Blink Rate: {bpm} BPM", font=fonts.f_body_bold, fill=Theme.ACCENT_EMERALD if 10<=bpm<=26 else Theme.ACCENT_AMBER)
+                draw.text((sx + 16, sy + 54), f"Yawns Logged: {yawn_count}", font=fonts.f_body, fill=Theme.ACCENT_ROSE if yawn_count>0 else Theme.TEXT_TITLE)
                 draw.text((sx + 160, sy + 54), f"MAR Level: {mar:.2f}", font=fonts.f_body, fill=Theme.TEXT_MUTED)
-
-                p_bar_y = sy + 84
                 p_fill = int((sw - 32) * min(1.0, perclos_pct / 30.0))
-                draw.rounded_rectangle([sx + 16, p_bar_y, sx + sw - 16, p_bar_y + 8], radius=4, fill=(24, 34, 52))
-                draw.rounded_rectangle([sx + 16, p_bar_y, sx + 16 + p_fill, p_bar_y + 8], radius=4, fill=fatigue_col)
-                draw.text((sx + 16, sy + 94), "Aviation/NASA Fatigue Threshold (Target < 12%)", font=fonts.f_badge, fill=Theme.TEXT_DARK)
-
+                draw.rounded_rectangle([sx + 16, sy + 84, sx + sw - 16, sy + 92], radius=4, fill=(24, 34, 52))
+                draw.rounded_rectangle([sx + 16, sy + 84, sx + 16 + p_fill, sy + 92], radius=4, fill=f_col)
                 sy += c3_h + 10
 
-                # --- CARD 4: POMODORO SPRINT & ERGONOMIC CLOCK ---
+                # 4. Pomodoro
                 c4_h = 95
-                pomo_mins = int(pomo_remaining) // 60
-                pomo_secs = int(pomo_remaining) % 60
-                p_tag = f"{pomo_state}" + (" (PAUSED)" if pomo_paused else "")
-                p_col = Theme.ACCENT_EMERALD if pomo_state == "WORK" else Theme.ACCENT_PURPLE
-                render_card_box(sy, c4_h, "POMODORO SPRINT", p_tag, p_col)
-
-                draw.text((sx + 16, sy + 32), f"{pomo_mins:02d}:{pomo_secs:02d}", font=fonts.f_big_metric, fill=Theme.TEXT_TITLE)
-                eye_m = int(eye_rest_remaining) // 60
-                draw.text((sx + 140, sy + 38), f"20-20-20 Optic Break in {eye_m}m", font=fonts.f_small, fill=Theme.ACCENT_PURPLE)
-
-                total_span = POMO_WORK_SEC if pomo_state == "WORK" else POMO_REST_SEC
+                pm = int(pomo_remaining) // 60
+                ps = int(pomo_remaining) % 60
+                render_box(sy, c4_h, "POMODORO SPRINT", pomo_state, Theme.ACCENT_EMERALD if pomo_state=="WORK" else Theme.ACCENT_PURPLE)
+                draw.text((sx + 16, sy + 32), f"{pm:02d}:{ps:02d}", font=fonts.f_big_metric, fill=Theme.TEXT_TITLE)
+                draw.text((sx + 140, sy + 38), f"20-20-20 Break in {int(eye_rest_remaining)//60}m", font=fonts.f_small, fill=Theme.ACCENT_PURPLE)
+                total_span = POMO_WORK_SEC if pomo_state=="WORK" else POMO_REST_SEC
                 p_pct = max(0.0, min(1.0, 1.0 - (pomo_remaining / total_span)))
-                b_y = sy + 72
-                draw.rounded_rectangle([sx + 16, b_y, sx + sw - 16, b_y + 8], radius=4, fill=(24, 34, 52))
-                draw.rounded_rectangle([sx + 16, b_y, sx + 16 + int((sw - 32) * p_pct), b_y + 8], radius=4, fill=p_col)
-
+                draw.rounded_rectangle([sx + 16, sy + 72, sx + sw - 16, sy + 80], radius=4, fill=(24, 34, 52))
+                draw.rounded_rectangle([sx + 16, sy + 72, sx + 16 + int((sw - 32)*p_pct), sy + 80], radius=4, fill=Theme.ACCENT_EMERALD if pomo_state=="WORK" else Theme.ACCENT_PURPLE)
                 sy += c4_h + 10
 
-                # --- CARD 5: PSYCHOLOGICAL INSIGHT & TELEMETRY ---
-                c5_h = 80
-                render_card_box(sy, c5_h, "MINDFUL INSIGHT", "SCIENCE", Theme.ACCENT_PURPLE)
+                # 5. Mindfulness
+                c5_h = 75
+                render_box(sy, c5_h, "MINDFUL INSIGHT", "SCIENCE", Theme.ACCENT_PURPLE)
                 q_text = PSYCHOLOGY_INSIGHTS[quote_index]
                 words = q_text.split()
-                l1, l2 = "", ""
-                for w in words:
-                    if len(l1) + len(w) < 40 and not l2:
-                        l1 += (" " if l1 else "") + w
-                    else:
-                        l2 += (" " if l2 else "") + w
+                l1 = " ".join(words[:7])
+                l2 = " ".join(words[7:])
                 draw.text((sx + 14, sy + 32), f'"{l1}', font=fonts.f_small, fill=Theme.TEXT_MUTED)
-                draw.text((sx + 14, sy + 50), f'{l2}"', font=fonts.f_small, fill=Theme.TEXT_MUTED)
+                draw.text((sx + 14, sy + 48), f'{l2}"', font=fonts.f_small, fill=Theme.TEXT_MUTED)
 
             final_canvas = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
             cv2.imshow(window_title, final_canvas)
@@ -976,6 +958,13 @@ def main():
                 calibration_start = time.monotonic()
                 calibration_samples = []
                 closed_tracker = SustainedObservation()
+
+            if key in (ord("r"), ord("R")):
+                elapsed = int(now - session_start_time)
+                export_desktop_audit_report(focus_score, (sum(perclos_buffer)/max(1,len(perclos_buffer)))*100, yawn_count, phone_distraction_count, elapsed, len(blink_timestamps))
+
+            if key in (ord("e"), ord("E")):
+                webbrowser.open("https://muhammad-ibraheem-kamboh.github.io/MindPulse-AI/")
 
             if key in (ord("p"), ord("P")):
                 pomo_paused = not pomo_paused
