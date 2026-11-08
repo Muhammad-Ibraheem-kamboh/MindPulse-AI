@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindPulse AI - 3D Cognitive Focus & Biometric Studio (Web Edition)</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js CDN for 3D Head Model -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- MediaPipe Face Mesh & Camera Utils -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+  <style>
+    body {
+      background-color: #080C14;
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow-x: hidden;
+    }
+    .obsidian-card {
+      background: #111622;
+      border: 1px solid #202B42;
+    }
+    .neon-glow {
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+    }
+    /* Mirror the webcam */
+    #webcam-video {
+      transform: scaleX(-1);
+    }
+    #output-canvas {
+      transform: scaleX(-1);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-cyan-500 selection:text-black">
+
+  <!-- TOP HEADER BAR -->
+  <header class="bg-[#182030] border-b border-[#202B42] px-4 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50">
+    <div class="flex items-center space-x-3">
+      <div id="status-dot" class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981] animate-pulse"></div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <span class="font-bold text-lg text-sky-400 tracking-wider">MINDPULSE AI</span>
+          <span class="text-xs px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800">WEB EDITION</span>
+        </div>
+        <p class="text-xs text-slate-400">3D Cognitive Focus & Biometric Studio</p>
+      </div>
+    </div>
+
+    <!-- HEADER BUTTONS -->
+    <div class="flex items-center flex-wrap gap-2 text-xs font-semibold">
+      <!-- Start/Stop Camera -->
+      <button id="btn-camera" class="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-black font-bold transition flex items-center space-x-1.5 shadow">
+        <span>▶</span> <span id="camera-btn-text">START CAMERA</span>
+      </button>
+
+      <!-- Audio Mute/Unmute Toggle -->
+      <button id="btn-audio" class="px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 transition flex items-center space-x-1">
+        <span id="audio-icon">🔇</span> <span id="audio-text">SOUND: MUTED</span>
+      </button>
+
+      <!-- Calibrate Eyes -->
+      <button id="btn-calibrate" class="px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-sky-400 hover:bg-slate-700 transition">
+        🎯 CALIBRATE
+      </button>
+
+      <!-- Privacy Blur -->
+      <button id="btn-blur" class="px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 transition">
+        BLUR: OFF
+      </button>
+
+      <!-- GitHub Link -->
+      <a href="https://github.com/Muhammad-Ibraheem-kamboh/MindPulse-AI" target="_blank" class="px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition flex items-center space-x-1.5">
+        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        <span>GitHub</span>
+      </a>
+
+      <!-- Telemetry Badge -->
+      <div class="hidden lg:flex items-center space-x-2 border-l border-slate-700 pl-3 text-slate-400">
+        <span id="session-timer">00:00</span>
+        <span>•</span>
+        <span id="fps-counter">30 FPS</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN STUDIO WORKSPACE -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 lg:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+    
+    <!-- LEFT: LIVE WEBCAM & TRACKING FEED (7 Cols) -->
+    <div class="lg:col-span-7 flex flex-col space-y-3">
+      <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden obsidian-card shadow-2xl flex items-center justify-center bg-black">
+        
+        <!-- Native Video Element (Hidden from display, piped to canvas) -->
+        <video id="webcam-video" class="hidden" playsinline></video>
+        
+        <!-- Live Augmented Canvas -->
+        <canvas id="output-canvas" class="w-full h-full object-cover"></canvas>
+
+        <!-- Initial Placeholder if camera not started -->
+        <div id="camera-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20">
+          <div class="w-16 h-16 rounded-full bg-sky-500/10 border border-sky-500/30 flex items-center justify-center mb-4 text-sky-400 text-3xl">
+            ⚡
+          </div>
+          <h2 class="text-xl font-bold text-white mb-2">MindPulse AI Web Studio</h2>
+          <p class="text-sm text-slate-400 max-w-md mb-5">
+            100% On-Device Client-Side AI. Your webcam feed is processed directly inside your browser's memory and is never recorded or uploaded anywhere.
+          </p>
+          <button id="btn-start-hero" class="px-6 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-black font-bold transition shadow-lg shadow-sky-500/20">
+            Launch Camera & 3D Tracking
+          </button>
+        </div>
+
+        <!-- Privacy Shield Indicator -->
+        <div class="absolute top-3 left-3 bg-slate-900/80 border border-slate-700/60 rounded-md px-2.5 py-1 text-[11px] font-semibold text-emerald-400 flex items-center space-x-1.5 backdrop-blur-md z-10">
+          <span>🔒</span>
+          <span>CLIENT-SIDE AIRGAP</span>
+        </div>
+
+        <!-- Live Calibration Overlay -->
+        <div id="calibration-banner" class="hidden absolute top-3 right-3 bg-sky-950/90 border border-sky-500 text-sky-300 rounded-md px-3 py-1.5 text-xs font-bold shadow-lg z-10 animate-bounce">
+          Hold eyes naturally open...
+        </div>
+
+        <!-- In-Webcam Bottom Status Cyber Pill -->
+        <div class="absolute bottom-3 inset-x-3 bg-slate-950/85 border border-slate-800 rounded-lg px-3.5 py-2 text-xs font-semibold flex items-center justify-between backdrop-blur-md z-10">
+          <span id="status-banner" class="text-emerald-400 truncate">System Standby • Click Start Camera to begin</span>
+          <span id="gaze-tag" class="text-slate-400 text-[10px] uppercase font-mono tracking-wider ml-2 shrink-0">STANDBY</span>
+        </div>
+      </div>
+
+      <!-- Quick Shortcuts Helper -->
+      <div class="obsidian-card rounded-lg px-3.5 py-2 text-xs text-slate-400 flex items-center justify-between">
+        <span>Controls: Click buttons above or press keys: <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">C</kbd> Calibrate • <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">P</kbd> Pomodoro • <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">M</kbd> Mute</span>
+        <span class="text-emerald-400 font-mono">100% Local</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: COGNITIVE DASHBOARD (5 Cols) -->
+    <div class="lg:col-span-5 flex flex-col space-y-3.5">
+      
+      <!-- CARD 1: 3D SPATIAL HEAD POSE GIZMO -->
+      <div class="obsidian-card rounded-xl p-3.5 shadow-lg relative overflow-hidden">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-200 tracking-wider">3D SPATIAL HEAD POSE</span>
+          <span id="pose-tag" class="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800">6DoF LIVE</span>
+        </div>
+        <div class="grid grid-cols-12 gap-3 items-center">
+          <!-- Three.js 3D Viewport -->
+          <div id="three-container" class="col-span-5 h-28 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-center justify-center overflow-hidden"></div>
+          <!-- Euler Angles Readings -->
+          <div class="col-span-7 flex flex-col justify-center space-y-1.5 text-xs">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Pitch (Nod):</span>
+              <span id="val-pitch" class="font-mono font-bold text-slate-200">+0.0°</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Yaw (Turn):</span>
+              <span id="val-yaw" class="font-mono font-bold text-slate-200">+0.0°</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">Roll (Tilt):</span>
+              <span id="val-roll" class="font-mono font-bold text-slate-400">+0.0°</span>
+            </div>
+            <div class="pt-1 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Posture:</span>
+              <span id="val-posture" class="text-emerald-400 font-bold">Centered</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: COGNITIVE ATTENTION & LIVE ECG WAVEFORM -->
+      <div class="obsidian-card rounded-xl p-3.5 shadow-lg">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-200 tracking-wider">COGNITIVE ENGAGEMENT</span>
+          <span id="focus-status-tag" class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">PEAK FLOW</span>
+        </div>
+        <div class="flex items-baseline space-x-3 mb-2.5">
+          <span id="val-focus-score" class="text-3xl font-black text-emerald-400 font-mono">95%</span>
+          <span id="val-ear-readout" class="text-xs text-slate-400 font-mono">EAR: 0.28 (Target &ge; 0.18)</span>
+        </div>
+        <!-- Live ECG Waveform Canvas -->
+        <div class="h-12 w-full rounded-md bg-slate-950 border border-slate-800 overflow-hidden relative">
+          <canvas id="ecg-canvas" class="w-full h-full"></canvas>
+        </div>
+      </div>
+
+      <!-- CARD 3: FATIGUE & BIOMETRICS (PERCLOS & YAWN) -->
+      <div class="obsidian-card rounded-xl p-3.5 shadow-lg">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-200 tracking-wider">FATIGUE & BIOMETRICS</span>
+          <span id="fatigue-status-tag" class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">RESTED</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs mb-2">
+          <div class="p-2 rounded bg-slate-950/60 border border-slate-800/80">
+            <span class="text-slate-400 block text-[10px]">PERCLOS (60s)</span>
+            <span id="val-perclos" class="text-base font-bold text-emerald-400 font-mono">3.2%</span>
+          </div>
+          <div class="p-2 rounded bg-slate-950/60 border border-slate-800/80">
+            <span class="text-slate-400 block text-[10px]">BLINK RATE</span>
+            <span id="val-bpm" class="text-base font-bold text-slate-200 font-mono">16 BPM</span>
+          </div>
+        </div>
+        <div class="flex justify-between items-center text-xs text-slate-400 mb-1.5">
+          <span>Yawns Logged: <strong id="val-yawns" class="text-slate-200 font-mono">0</strong></span>
+          <span>MAR: <strong id="val-mar" class="font-mono">0.18</strong></span>
+        </div>
+        <!-- PERCLOS Progress Bar -->
+        <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+          <div id="perclos-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 12%;"></div>
+        </div>
+        <span class="text-[10px] text-slate-500 mt-1 block">Aviation & NASA Fatigue Alert Threshold: &lt; 15%</span>
+      </div>
+
+      <!-- CARD 4: POMODORO SPRINT & MINDFULNESS -->
+      <div class="obsidian-card rounded-xl p-3.5 shadow-lg">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-200 tracking-wider">POMODORO SPRINT</span>
+          <button id="btn-pomo-toggle" class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-sky-400 border border-slate-700 hover:bg-slate-700 transition">
+            PAUSE
+          </button>
+        </div>
+        <div class="flex items-center justify-between mb-2">
+          <span id="pomo-display" class="text-2xl font-black text-slate-100 font-mono">25:00</span>
+          <span class="text-xs text-purple-400">20-20-20 Optic Break in <span id="optic-display">20m</span></span>
+        </div>
+        <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden mb-3">
+          <div id="pomo-bar" class="h-full bg-purple-500 transition-all duration-500" style="width: 0%;"></div>
+        </div>
+        <!-- Cognitive Nudge -->
+        <div class="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800/80 text-xs text-slate-400 italic">
+          💡 <span id="psych-quote">"Deep diaphragmatic breaths lower cortisol and elevate working memory."</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-[#182030] border-t border-[#202B42] px-4 py-2.5 text-center text-xs text-slate-400 flex flex-wrap items-center justify-between gap-2">
+    <span>MindPulse AI Studio • Built by <a href="https://github.com/Muhammad-Ibraheem-kamboh" target="_blank" class="text-sky-400 hover:underline font-semibold">Muhammad Ibraheem</a></span>
+    <span>100% Client-Side WebAssembly & WebGL • MIT License</span>
+  </footer>
+
+  <!-- STUDIO JAVASCRIPT ENGINE -->
+  <script>
+    // =========================================================================
+    // 1. STATE & AUDIO ENGINE
+    // =========================================================================
+    let cameraRunning = false;
+    let audioEnabled = false; // Muted by default
+    let privacyBlur = false;
+    let cameraInstance = null;
+
+    let earThreshold = 0.185;
+    let calibrationStart = null;
+    let calibrationSamples = [];
+
+    let eyesClosedStart = null;
+    let wasEyeClosed = false;
+    let eyeClosedTimestamp = 0;
+    let blinkHistory = [];
+
+    let yawnStart = null;
+    let yawnCount = 0;
+    let yawnFlagged = false;
+    let sleepyFlagged = false;
+
+    let perclosBuffer = [];
+    const PERCLOS_MAX = 1800;
+
+    let focusScore = 95.0;
+    const waveformData = new Array(120).fill(90);
+
+    let sessionStartTime = Date.now();
+    let frameCount = 0;
+    let lastFpsTime = Date.now();
+    let fps = 30;
+
+    // Pomodoro (25m / 5m)
+    let pomoSeconds = 25 * 60;
+    let pomoState = "WORK";
+    let pomoPaused = false;
+    let opticSeconds = 20 * 60;
+
+    const PSYCH_QUOTES = [
+      "Deep diaphragmatic breaths lower cortisol and elevate working memory.",
+      "Peak performers do not study longer; they protect against micro-distractions.",
+      "A hydrated brain processes neural signals 14% faster. Take a sip of water.",
+      "Your brain consolidates memory traces during brief moments of calm stillness.",
+      "Progress is forged in 25-minute sprints. Keep your attention right here.",
+      "Notice tension in your shoulders or jaw? Exhale slowly and loosen up.",
+      "Drowsiness is an energy signal, not a failure. Stand up and stretch.",
+      "Follow the 20-20-20 rule: every 20m, look at an object 20ft away for 20s."
+    ];
+    let quoteIdx = 0;
+
+    // Web Audio Synthesizer (Zero external files needed)
+    let audioCtx = null;
+    function playBeep(freq = 750, dur = 0.08) {
+      if (!audioEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // 2. THREE.JS 3D WIREFRAME HEAD MODEL VIEWPORT
+    // =========================================================================
+    let scene, camera3D, renderer3D, headWireframe;
+    function initThreeJS() {
+      const container = document.getElementById("three-container");
+      const width = container.clientWidth || 150;
+      const height = container.clientHeight || 110;
+
+      scene = new THREE.Scene();
+      camera3D = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+      camera3D.position.z = 4.5;
+
+      renderer3D = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer3D.setSize(width, height);
+      renderer3D.setClearColor(0x000000, 0);
+      container.appendChild(renderer3D.domElement);
+
+      // Create a futuristic geometric faceted head mesh
+      const geom = new THREE.IcosahedronGeometry(1.4, 1);
+      const wireframeGeom = new THREE.WireframeGeometry(geom);
+      const mat = new THREE.LineBasicMaterial({ color: 0x38BDF8, linewidth: 1.5, transparent: true, opacity: 0.85 });
+      headWireframe = new THREE.LineSegments(wireframeGeom, mat);
+      scene.add(headWireframe);
+
+      // Add coordinate nose tip anchor
+      const noseGeom = new THREE.SphereGeometry(0.12, 8, 8);
+      const noseMat = new THREE.MeshBasicMaterial({ color: 0x10B981 });
+      const noseMesh = new THREE.Mesh(noseGeom, noseMat);
+      noseMesh.position.set(0, -0.1, 1.4);
+      headWireframe.add(noseMesh);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer3D.render(scene, camera3D);
+      }
+      animate();
+    }
+
+    // =========================================================================
+    // 3. MATHEMATICAL BIOMETRICS (EAR, MAR, 3D POSE)
+    // =========================================================================
+    function distance(p1, p2, w, h) {
+      return Math.hypot((p1.x - p2.x) * w, (p1.y - p2.y) * h);
+    }
+
+    function calculateEAR(lm, w, h) {
+      const leftIds = [33, 160, 158, 133, 153, 144];
+      const rightIds = [362, 385, 387, 263, 373, 380];
+      function eyeRatio(ids) {
+        const [a, b, c, d, e, f] = ids.map(i => lm[i]);
+        const horiz = distance(a, d, w, h);
+        if (horiz < 2.0) return null;
+        const vert = (distance(b, f, w, h) + distance(c, e, w, h)) / (2.0 * horiz);
+        return vert;
+      }
+      const l = eyeRatio(leftIds);
+      const r = eyeRatio(rightIds);
+      if (l === null || r === null) return null;
+      return (l + r) / 2.0;
+    }
+
+    function calculateMAR(lm, w, h) {
+      const top = lm[13], bot = lm[14], left = lm[61], right = lm[291];
+      const vert = distance(top, bot, w, h);
+      const horiz = distance(left, right, w, h);
+      return horiz > 2.0 ? vert / horiz : 0.0;
+    }
+
+    function estimateHeadPose(lm) {
+      // Landmark 1: Nose, 10: Forehead, 152: Chin, 33: Left eye, 263: Right eye
+      const nose = lm[1], chin = lm[152], forehead = lm[10], leftEye = lm[33], rightEye = lm[263];
+      // Yaw: horizontal deviation of nose relative to eye span
+      const eyeSpan = Math.abs(rightEye.x - leftEye.x) + 1e-6;
+      const noseOffset = (nose.x - leftEye.x) / eyeSpan;
+      const yaw = (noseOffset - 0.5) * 80.0; // in degrees
+
+      // Pitch: vertical position of nose relative to forehead-chin
+      const faceHeight = Math.abs(chin.y - forehead.y) + 1e-6;
+      const pitchRatio = (nose.y - forehead.y) / faceHeight;
+      const pitch = (pitchRatio - 0.52) * 90.0;
+
+      // Roll: slope between eyes
+      const roll = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x) * (180 / Math.PI);
+
+      return { pitch, yaw, roll };
+    }
+
+    // =========================================================================
+    // 4. MEDIAPIPE FACE MESH PIPELINE
+    // =========================================================================
+    const videoElement = document.getElementById("webcam-video");
+    const canvasElement = document.getElementById("output-canvas");
+    const canvasCtx = canvasElement.getContext("2d");
+
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    faceMesh.onResults(onResults);
+
+    function onResults(results) {
+      canvasElement.width = videoElement.videoWidth || 640;
+      canvasElement.height = videoElement.videoHeight || 480;
+      const w = canvasElement.width;
+      const h = canvasElement.height;
+
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, w, h);
+
+      // Render camera feed (with optional blur)
+      if (privacyBlur) canvasCtx.filter = "blur(18px)";
+      canvasCtx.drawImage(results.image, 0, 0, w, h);
+      canvasCtx.filter = "none";
+
+      const now = performance.now() / 1000;
+      frameCount++;
+      if (Date.now() - lastFpsTime >= 1000) {
+        fps = frameCount;
+        frameCount = 0;
+        lastFpsTime = Date.now();
+        document.getElementById("fps-counter").textContent = `${fps} FPS`;
+      }
+
+      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        const lm = results.multiFaceLandmarks[0];
+
+        // 1. EAR (Eye Aspect Ratio)
+        const ear = calculateEAR(lm, w, h);
+
+        // 2. MAR (Mouth Aspect Ratio)
+        const mar = calculateMAR(lm, w, h);
+
+        // 3. Head Pose (Pitch, Yaw, Roll)
+        const { pitch, yaw, roll } = estimateHeadPose(lm);
+
+        // Update 3D wireframe head model in real time!
+        if (headWireframe) {
+          headWireframe.rotation.x = THREE.MathUtils.degToRad(-pitch);
+          headWireframe.rotation.y = THREE.MathUtils.degToRad(yaw);
+          headWireframe.rotation.z = THREE.MathUtils.degToRad(-roll);
+        }
+
+        document.getElementById("val-pitch").textContent = `${pitch >= 0 ? '+' : ''}${pitch.toFixed(1)}°`;
+        document.getElementById("val-yaw").textContent = `${yaw >= 0 ? '+' : ''}${yaw.toFixed(1)}°`;
+        document.getElementById("val-roll").textContent = `${roll >= 0 ? '+' : ''}${roll.toFixed(1)}°`;
+
+        const isSlouching = pitch > 20.0 || Math.abs(yaw) > 25.0;
+        const postureElem = document.getElementById("val-posture");
+        postureElem.textContent = isSlouching ? "Slouching / Turned" : "Centered Upright";
+        postureElem.className = isSlouching ? "text-amber-400 font-bold" : "text-emerald-400 font-bold";
+
+        // Calibration
+        if (calibrationStart !== null) {
+          if (ear !== null) calibrationSamples.push(ear);
+          const rem = Math.max(0, 3.0 - (now - calibrationStart));
+          document.getElementById("calibration-banner").textContent = `Hold eyes naturally open: ${rem.toFixed(1)}s`;
+          if (rem <= 0) {
+            if (calibrationSamples.length > 10) {
+              calibrationSamples.sort((a,b) => a - b);
+              const median = calibrationSamples[Math.floor(calibrationSamples.length / 2)];
+              earThreshold = Math.max(0.14, median * 0.72);
+              document.getElementById("val-ear-readout").textContent = `EAR: ${ear.toFixed(2)} (Calibrated: ${earThreshold.toFixed(2)})`;
+              playBeep(880, 0.12);
+            }
+            calibrationStart = null;
+            document.getElementById("calibration-banner").classList.add("hidden");
+          }
+        } else if (ear !== null) {
+          document.getElementById("val-ear-readout").textContent = `EAR: ${ear.toFixed(2)} (Target \u2265 ${earThreshold.toFixed(2)})`;
+        }
+
+        // PERCLOS & Blink
+        const isEyeClosed = (ear !== null && ear < earThreshold && calibrationStart === null);
+        perclosBuffer.push(isEyeClosed ? 1 : 0);
+        if (perclosBuffer.length > PERCLOS_MAX) perclosBuffer.shift();
+
+        if (isEyeClosed && !wasEyeClosed) {
+          wasEyeClosed = true;
+          eyeClosedTimestamp = now;
+        } else if (!isEyeClosed && wasEyeClosed) {
+          wasEyeClosed = false;
+          const dur = now - eyeClosedTimestamp;
+          if (dur >= 0.08 && dur <= 0.45) {
+            blinkHistory.push(now);
+          }
+        }
+        while (blinkHistory.length > 0 && (now - blinkHistory[0] > 60.0)) {
+          blinkHistory.shift();
+        }
+        document.getElementById("val-bpm").textContent = `${blinkHistory.length} BPM`;
+
+        // PERCLOS calculation
+        const perclos = (perclosBuffer.reduce((a, b) => a + b, 0) / Math.max(1, perclosBuffer.length)) * 100.0;
+        document.getElementById("val-perclos").textContent = `${perclos.toFixed(1)}%`;
+        const pBar = document.getElementById("perclos-bar");
+        pBar.style.width = `${Math.min(100, perclos * 3)}%`;
+
+        if (perclos > 18.0) {
+          pBar.className = "h-full bg-rose-500 transition-all duration-300";
+        } else if (perclos > 12.0) {
+          pBar.className = "h-full bg-amber-500 transition-all duration-300";
+        } else {
+          pBar.className = "h-full bg-emerald-500 transition-all duration-300";
+        }
+
+        // Yawn Detection (MAR)
+        document.getElementById("val-mar").textContent = mar.toFixed(2);
+        const isYawning = mar >= 0.58;
+        if (isYawning && !yawnFlagged) {
+          if (!yawnStart) yawnStart = now;
+          if (now - yawnStart >= 1.2) {
+            yawnCount++;
+            yawnFlagged = true;
+            document.getElementById("val-yawns").textContent = yawnCount;
+            playBeep(620, 0.1);
+          }
+        } else if (!isYawning) {
+          yawnStart = null;
+          yawnFlagged = false;
+        }
+
+        // Alert States
+        const isDrowsy = isEyeClosed && (now - eyeClosedTimestamp >= 2.0 || perclos > 18.0);
+        if (isDrowsy && !sleepyFlagged) {
+          sleepyFlagged = true;
+          playBeep(520, 0.12);
+        } else if (!isEyeClosed) {
+          sleepyFlagged = false;
+        }
+
+        // Status Banner Text
+        const statusBanner = document.getElementById("status-banner");
+        const gazeTag = document.getElementById("gaze-tag");
+        if (isDrowsy) {
+          statusBanner.textContent = "FATIGUE ALERT: Eyes closed \u2014 Take a restorative deep breath";
+          statusBanner.className = "text-rose-400 font-bold truncate";
+          gazeTag.textContent = "DROWSY";
+          gazeTag.className = "text-rose-400 text-[10px] font-bold";
+        } else if (yawnFlagged) {
+          statusBanner.textContent = "EARLY FATIGUE: Yawn detected \u2014 Hydrate and stretch";
+          statusBanner.className = "text-amber-400 font-bold truncate";
+          gazeTag.textContent = "YAWN";
+          gazeTag.className = "text-amber-400 text-[10px] font-bold";
+        } else if (isSlouching) {
+          statusBanner.textContent = "POSTURE NOTICE: Align spine and lift your gaze";
+          statusBanner.className = "text-amber-400 font-bold truncate";
+          gazeTag.textContent = "POSTURE";
+          gazeTag.className = "text-amber-400 text-[10px] font-bold";
+        } else {
+          statusBanner.textContent = "OPTIMAL FLOW: Gaze Locked \u2022 Posture Aligned \u2022 Ready";
+          statusBanner.className = "text-emerald-400 font-bold truncate";
+          gazeTag.textContent = "LOCKED";
+          gazeTag.className = "text-emerald-400 text-[10px] font-bold";
+        }
+
+        // Focus Score calculation
+        let targetScore = 98.0;
+        if (isDrowsy) targetScore = 25.0;
+        else if (yawnFlagged) targetScore = 45.0;
+        else if (isSlouching) targetScore = 70.0;
+        focusScore = 0.95 * focusScore + 0.05 * targetScore;
+        document.getElementById("val-focus-score").textContent = `${Math.round(focusScore)}%`;
+
+        // Update Waveform buffer
+        const ripple = Math.sin(now * 5.0) * 1.5;
+        waveformData.shift();
+        waveformData.push(Math.max(5, Math.min(100, focusScore + ripple)));
+
+        // Render facial gaze dots & 3D coordinate gimbal directly on camera canvas
+        drawFaceOverlay(canvasCtx, lm, w, h);
+      } else {
+        document.getElementById("status-banner").textContent = "Camera active \u2022 Position face in frame";
+      }
+
+      canvasCtx.restore();
+    }
+
+    function drawFaceOverlay(ctx, lm, w, h) {
+      // Pupils / Iris reticles
+      const leftPupil = lm[468] || lm[33];
+      const rightPupil = lm[473] || lm[263];
+      ctx.fillStyle = "#38BDF8";
+      ctx.beginPath();
+      ctx.arc(leftPupil.x * w, leftPupil.y * h, 3, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(rightPupil.x * w, rightPupil.y * h, 3, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // 3D Axis crosshair on nose
+      const nose = lm[1];
+      const nx = nose.x * w, ny = nose.y * h;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#EF4444"; // X
+      ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(nx + 25, ny); ctx.stroke();
+      ctx.strokeStyle = "#10B981"; // Y
+      ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(nx, ny - 25); ctx.stroke();
+      ctx.strokeStyle = "#38BDF8"; // Z
+      ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(nx - 15, ny + 15); ctx.stroke();
+    }
+
+    // =========================================================================
+    // 5. LIVE ECG WAVEFORM GRAPH RENDERER
+    // =========================================================================
+    const ecgCanvas = document.getElementById("ecg-canvas");
+    const ecgCtx = ecgCanvas.getContext("2d");
+
+    function renderECGWaveform() {
+      ecgCanvas.width = ecgCanvas.clientWidth || 300;
+      ecgCanvas.height = ecgCanvas.clientHeight || 48;
+      const w = ecgCanvas.width;
+      const h = ecgCanvas.height;
+
+      ecgCtx.clearRect(0, 0, w, h);
+
+      // Grid line
+      ecgCtx.strokeStyle = "#1E293B";
+      ecgCtx.lineWidth = 1;
+      ecgCtx.beginPath();
+      ecgCtx.moveTo(0, h / 2);
+      ecgCtx.lineTo(w, h / 2);
+      ecgCtx.stroke();
+
+      // Waveform line
+      ecgCtx.strokeStyle = focusScore >= 80 ? "#10B981" : (focusScore >= 50 ? "#F59E0B" : "#EF4444");
+      ecgCtx.lineWidth = 2;
+      ecgCtx.beginPath();
+
+      const step = w / (waveformData.length - 1);
+      waveformData.forEach((val, i) => {
+        const x = i * step;
+        const y = h - (val / 100.0) * (h - 6) - 3;
+        if (i === 0) ecgCtx.moveTo(x, y);
+        else ecgCtx.lineTo(x, y);
+      });
+      ecgCtx.stroke();
+
+      requestAnimationFrame(renderECGWaveform);
+    }
+    renderECGWaveform();
+
+    // =========================================================================
+    // 6. POMODORO & TIMERS
+    // =========================================================================
+    setInterval(() => {
+      // Session Uptime
+      const totalSec = Math.floor((Date.now() - sessionStartTime) / 1000);
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      document.getElementById("session-timer").textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+      // Pomodoro
+      if (!pomoPaused && cameraRunning) {
+        pomoSeconds--;
+        if (pomoSeconds <= 0) {
+          pomoState = (pomoState === "WORK") ? "BREAK" : "WORK";
+          pomoSeconds = (pomoState === "WORK") ? 25 * 60 : 5 * 60;
+          playBeep(880, 0.15);
+        }
+        const pm = Math.floor(pomoSeconds / 60);
+        const ps = pomoSeconds % 60;
+        document.getElementById("pomo-display").textContent = `${String(pm).padStart(2,'0')}:${String(ps).padStart(2,'0')}`;
+        const totalPomo = (pomoState === "WORK") ? 25 * 60 : 5 * 60;
+        const pct = ((totalPomo - pomoSeconds) / totalPomo) * 100;
+        document.getElementById("pomo-bar").style.width = `${pct}%`;
+      }
+
+      // Optic Break
+      if (cameraRunning) {
+        opticSeconds = Math.max(0, opticSeconds - 1);
+        if (opticSeconds === 0) opticSeconds = 20 * 60;
+        document.getElementById("optic-display").textContent = `${Math.ceil(opticSeconds / 60)}m`;
+      }
+    }, 1000);
+
+    // Rotate Quote every 45s
+    setInterval(() => {
+      quoteIdx = (quoteIdx + 1) % PSYCH_QUOTES.length;
+      document.getElementById("psych-quote").textContent = `"${PSYCH_QUOTES[quoteIdx]}"`;
+    }, 45000);
+
+    // =========================================================================
+    // 7. EVENT LISTENERS & USER CONTROLS
+    // =========================================================================
+    async function startCamera() {
+      try {
+        if (!cameraInstance) {
+          cameraInstance = new Camera(videoElement, {
+            onFrame: async () => {
+              await faceMesh.send({ image: videoElement });
+            },
+            width: 640,
+            height: 480
+          });
+        }
+        await cameraInstance.start();
+        cameraRunning = true;
+        document.getElementById("camera-overlay").classList.add("hidden");
+        document.getElementById("camera-btn-text").textContent = "STOP CAMERA";
+        document.getElementById("btn-camera").className = "px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-bold transition flex items-center space-x-1.5 shadow";
+      } catch (err) {
+        alert("Camera error: " + err.message);
+      }
+    }
+
+    function stopCamera() {
+      if (cameraInstance) {
+        cameraInstance.stop();
+        cameraRunning = false;
+        document.getElementById("camera-overlay").classList.remove("hidden");
+        document.getElementById("camera-btn-text").textContent = "START CAMERA";
+        document.getElementById("btn-camera").className = "px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-black font-bold transition flex items-center space-x-1.5 shadow";
+      }
+    }
+
+    document.getElementById("btn-camera").addEventListener("click", () => {
+      if (cameraRunning) stopCamera();
+      else startCamera();
+    });
+
+    document.getElementById("btn-start-hero").addEventListener("click", startCamera);
+
+    // Audio Toggle
+    const btnAudio = document.getElementById("btn-audio");
+    btnAudio.addEventListener("click", () => {
+      audioEnabled = !audioEnabled;
+      if (audioEnabled) {
+        document.getElementById("audio-icon").textContent = "🔊";
+        document.getElementById("audio-text").textContent = "SOUND: ON";
+        btnAudio.className = "px-3 py-1.5 rounded-md bg-emerald-600 border border-emerald-500 text-black font-bold transition flex items-center space-x-1 shadow";
+        playBeep(750, 0.08);
+      } else {
+        document.getElementById("audio-icon").textContent = "🔇";
+        document.getElementById("audio-text").textContent = "SOUND: MUTED";
+        btnAudio.className = "px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 transition flex items-center space-x-1";
+      }
+    });
+
+    // Calibrate
+    document.getElementById("btn-calibrate").addEventListener("click", () => {
+      calibrationStart = performance.now() / 1000;
+      calibrationSamples = [];
+      document.getElementById("calibration-banner").classList.remove("hidden");
+    });
+
+    // Privacy Blur
+    const btnBlur = document.getElementById("btn-blur");
+    btnBlur.addEventListener("click", () => {
+      privacyBlur = !privacyBlur;
+      btnBlur.textContent = privacyBlur ? "BLUR: ON" : "BLUR: OFF";
+      btnBlur.className = privacyBlur 
+        ? "px-3 py-1.5 rounded-md bg-amber-600 border border-amber-500 text-white font-bold transition"
+        : "px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 transition";
+    });
+
+    // Pomodoro Pause
+    const btnPomo = document.getElementById("btn-pomo-toggle");
+    btnPomo.addEventListener("click", () => {
+      pomoPaused = !pomoPaused;
+      btnPomo.textContent = pomoPaused ? "RESUME" : "PAUSE";
+    });
+
+    // Keyboard Shortcuts
+    window.addEventListener("keydown", (e) => {
+      const key = e.key.toLowerCase();
+      if (key === "c") document.getElementById("btn-calibrate").click();
+      if (key === "m") btnAudio.click();
+      if (key === "p") btnPomo.click();
+      if (key === "v") btnBlur.click();
+    });
+
+    // Initialize 3D Viewport on Load
+    window.addEventListener("DOMContentLoaded", initThreeJS);
+  </script>
+</body>
+</html>
