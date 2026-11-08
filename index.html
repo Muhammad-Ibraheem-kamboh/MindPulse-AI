@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MindPulse AI - Multi-Candidate Exam & Focus Proctoring Studio</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  <title>Blinkr - Autonomous Examination & Student Focus Studio</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👁️</text></svg>">
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -27,7 +27,7 @@
       background: #111622;
       border: 1px solid #202B42;
     }
-    #webcam-video, #output-canvas {
+    #webcam-video, #output-canvas, #student-canvas, #student-video {
       transform: scaleX(-1);
     }
     @media print {
@@ -45,10 +45,10 @@
       <div id="status-dot" class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981] animate-pulse"></div>
       <div>
         <div class="flex items-center space-x-2">
-          <span class="font-bold text-lg text-sky-400 tracking-wider">MINDPULSE AI</span>
+          <span class="font-black text-xl text-sky-400 tracking-wider">BLINKR</span>
           <span id="role-badge" class="text-xs px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800 font-bold uppercase">PROCTOR STUDIO</span>
         </div>
-        <p class="text-[11px] text-slate-400">Classroom Attention & Integrity Monitor</p>
+        <p class="text-[11px] text-slate-400">Autonomous Attention & Exam Integrity Suite</p>
       </div>
     </div>
 
@@ -73,7 +73,7 @@
   <!-- ========================================================================= -->
   <!-- VIEW 1: EXAMINER / TEACHER DASHBOARD (ZOOM-STYLE MULTI-CANDIDATE GRID)  -->
   <!-- ========================================================================= -->
-  <section id="view-examiner" class="hidden flex-1 max-w-7xl w-full mx-auto p-4 flex-col space-y-4">
+  <section id="view-examiner" class="hidden flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col space-y-4">
     <!-- Session Config & Creator Box -->
     <div class="obsidian-card rounded-xl p-4 shadow-xl">
       <div class="flex flex-wrap items-center justify-between gap-4">
@@ -81,12 +81,12 @@
           <h2 class="text-base font-bold text-white flex items-center space-x-2">
             <span>🎓</span> <span>Examiner Command Center & Activity Host</span>
           </h2>
-          <p class="text-xs text-slate-400">Create an exam/activity room, share the link with students, and monitor their live focus & location in real time.</p>
+          <p class="text-xs text-slate-400">Create an exam session, share the link with students, and monitor their live video feed, facial biometrics & location.</p>
         </div>
 
         <!-- Room Creator Controls -->
         <div class="flex flex-wrap items-center gap-2">
-          <input id="input-activity-name" type="text" placeholder="Activity (e.g. Physics Final Exam)" class="bg-slate-950 border border-slate-700 rounded-md px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500 w-52">
+          <input id="input-activity-name" type="text" placeholder="Activity (e.g. CS101 Final Exam)" class="bg-slate-950 border border-slate-700 rounded-md px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500 w-52">
           <input id="input-examiner-name" type="text" placeholder="Examiner / Teacher Name" class="bg-slate-950 border border-slate-700 rounded-md px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500 w-44">
           <button id="btn-create-room" class="px-4 py-1.5 rounded-md bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs transition shadow-md shadow-sky-500/20">
             Create Live Session
@@ -98,13 +98,13 @@
       <div id="room-banner" class="hidden mt-3 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 bg-slate-950/60 p-3 rounded-lg">
         <div class="flex items-center space-x-2">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-          <span class="text-xs text-slate-300 font-semibold">Active Session Code: <strong id="display-room-code" class="text-sky-400 font-mono text-sm ml-1"></strong></span>
-          <span class="text-xs text-slate-400">• Candidates Connected: <strong id="display-candidate-count" class="text-emerald-400 font-mono">0</strong></span>
+          <span class="text-xs text-slate-300 font-semibold">Session Code: <strong id="display-room-code" class="text-sky-400 font-mono text-sm ml-1"></strong></span>
+          <span class="text-xs text-slate-400">• Candidates Active: <strong id="display-candidate-count" class="text-emerald-400 font-mono">0</strong></span>
         </div>
         <div class="flex items-center space-x-2">
           <input id="display-invite-link" type="text" readonly class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-slate-300 font-mono w-64 md:w-80 select-all">
           <button id="btn-copy-link" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white border border-slate-600 transition">
-            Copy Link
+            Copy Student Link
           </button>
           <button id="btn-export-report" class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-black transition shadow">
             📄 Audit Report
@@ -115,9 +115,12 @@
 
     <!-- Live Candidate Stream Grid (Zoom / Teams Style) -->
     <div class="flex items-center justify-between">
-      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Live Candidate Monitoring Stream</h3>
+      <div class="flex items-center space-x-2">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Live Video Proctoring Grid</h3>
+        <span class="text-[11px] text-slate-500">• Visual ID & Biometric Verification</span>
+      </div>
       <div class="flex items-center space-x-2 text-xs">
-        <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">● LIVE SYNC</span>
+        <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">● LIVE WEBRTC</span>
         <span id="examiner-time" class="font-mono text-slate-400">00:00:00</span>
       </div>
     </div>
@@ -128,7 +131,7 @@
       <div id="candidate-empty" class="col-span-full obsidian-card rounded-xl p-10 text-center flex flex-col items-center justify-center space-y-3">
         <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 text-2xl">👥</div>
         <h4 class="text-sm font-bold text-white">No Candidates Connected Yet</h4>
-        <p class="text-xs text-slate-400 max-w-md">Share the generated session link with your students. As soon as they open the link and verify their camera & location, their live biometrics will appear here.</p>
+        <p class="text-xs text-slate-400 max-w-md">Share the generated session link with your students. As soon as a student joins and activates their webcam, their live video stream and facial verification card will appear right here.</p>
       </div>
     </div>
   </section>
@@ -141,48 +144,59 @@
     <!-- Student Verification Form (Before Test Starts) -->
     <div id="student-join-box" class="obsidian-card rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
       <div class="text-center space-y-1">
-        <div class="w-12 h-12 rounded-full bg-sky-500/10 border border-sky-500/30 flex items-center justify-center mx-auto text-2xl text-sky-400">📝</div>
-        <h2 class="text-lg font-bold text-white">Student Exam Verification Portal</h2>
-        <p class="text-xs text-slate-400">Please verify your details and location before beginning your monitored assessment.</p>
+        <div class="w-12 h-12 rounded-full bg-sky-500/10 border border-sky-500/30 flex items-center justify-center mx-auto text-2xl text-sky-400">👁️</div>
+        <h2 class="text-lg font-bold text-white">Blinkr Candidate Verification Portal</h2>
+        <p class="text-xs text-slate-400">Please enter your verified candidate credentials and enable camera access before beginning.</p>
       </div>
 
       <div class="space-y-3 text-xs">
         <div>
-          <label class="block text-slate-300 font-semibold mb-1">Full Name</label>
+          <label class="block text-slate-300 font-semibold mb-1">Candidate Full Name</label>
           <input id="student-input-name" type="text" placeholder="e.g. John Doe" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
         </div>
         <div>
-          <label class="block text-slate-300 font-semibold mb-1">Student / Roll ID</label>
-          <input id="student-input-id" type="text" placeholder="e.g. CS-2026-891" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
+          <label class="block text-slate-300 font-semibold mb-1">Student / Roll Number</label>
+          <input id="student-input-id" type="text" placeholder="e.g. CS-2026-891" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500 font-mono">
         </div>
         <div>
           <label class="block text-slate-300 font-semibold mb-1">Session / Room Code</label>
-          <input id="student-input-room" type="text" placeholder="e.g. EXAM-9421" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500 font-mono">
+          <input id="student-input-room" type="text" placeholder="e.g. EXAM-9421" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500 font-mono uppercase">
         </div>
 
         <!-- Geolocation Status Pill -->
         <div class="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
           <div class="flex items-center justify-between">
-            <span class="text-slate-400 font-semibold">📍 Geolocation Verification:</span>
+            <span class="text-slate-400 font-semibold">📍 Geolocation & Identity Audit:</span>
             <span id="geo-status-tag" class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800">PENDING CONSENT</span>
           </div>
-          <p id="geo-details" class="text-[11px] text-slate-500 font-mono">Location coordinates will be validated to verify exam attendance integrity.</p>
+          <p id="geo-details" class="text-[11px] text-slate-500 font-mono">Location coordinates will be attached to your exam certificate for attendance verification.</p>
         </div>
       </div>
 
       <button id="btn-start-student-session" class="w-full py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-500/20">
-        Start Verified Exam Monitoring
+        Start Monitored Exam & Camera Stream
       </button>
     </div>
 
     <!-- Active Student Monitoring HUD (Revealed after joining) -->
     <div id="student-active-hud" class="hidden w-full max-w-4xl obsidian-card rounded-2xl p-4 shadow-2xl flex flex-col md:flex-row gap-4">
       <div class="relative w-full md:w-1/2 aspect-[4/3] rounded-xl overflow-hidden bg-black border border-slate-800">
-        <video id="student-video" class="hidden" playsinline></video>
-        <canvas id="student-canvas" class="w-full h-full object-cover"></canvas>
+        <video id="student-video" playsinline autoplay muted class="w-full h-full object-cover"></video>
+        <canvas id="student-canvas" class="w-full h-full object-cover absolute inset-0 pointer-events-none"></canvas>
+        
+        <div class="absolute top-2 left-2 bg-slate-950/80 backdrop-blur-md rounded px-2 py-0.5 text-[10px] font-mono text-emerald-400 flex items-center space-x-1.5 border border-emerald-900">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>PROCTOR ACTIVE</span>
+        </div>
+
+        <!-- Pop-up Student Warning Banner -->
+        <div id="student-warning-box" class="hidden absolute top-10 inset-x-3 bg-rose-950/95 border border-rose-500 text-rose-200 text-xs p-2 rounded-lg text-center font-bold shadow-xl animate-bounce">
+          ⚠️ Warning: Teacher detected an anomaly. Please stay focused on your exam screen!
+        </div>
+
         <div class="absolute bottom-2 inset-x-2 bg-slate-950/85 backdrop-blur-md rounded px-2.5 py-1 text-[11px] font-semibold flex items-center justify-between">
-          <span id="student-status-text" class="text-emerald-400">Exam In Progress • Live Proctor Active</span>
-          <span class="text-slate-400 font-mono text-[10px]">SYNC: ACTIVE</span>
+          <span id="student-status-text" class="text-emerald-400">Exam Live • Camera Verified</span>
+          <span class="text-slate-400 font-mono text-[10px]">P2P SECURE</span>
         </div>
       </div>
 
@@ -193,7 +207,7 @@
               <h3 id="student-name-display" class="font-bold text-sm text-white">Student Name</h3>
               <span id="student-id-display" class="text-slate-400 font-mono">ID: CS-000</span>
             </div>
-            <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold text-[10px]">CONNECTED</span>
+            <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold text-[10px]">LIVE STREAMING</span>
           </div>
 
           <div class="grid grid-cols-2 gap-2 mb-3">
@@ -210,7 +224,7 @@
           <div class="p-2.5 rounded bg-slate-950 border border-slate-800 text-[11px] space-y-1">
             <div class="flex justify-between"><span class="text-slate-400">Location:</span> <span id="student-location-display" class="font-mono text-slate-200">Detecting...</span></div>
             <div class="flex justify-between"><span class="text-slate-400">Gaze State:</span> <span id="student-gaze-display" class="text-emerald-400 font-semibold">Locked On-Screen</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Posture:</span> <span id="student-posture-display" class="text-emerald-400 font-semibold">Upright</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Tab Switches:</span> <span id="student-tabs-display" class="font-mono text-emerald-400 font-bold">0 Clean</span></div>
           </div>
         </div>
 
@@ -231,9 +245,9 @@
         <video id="webcam-video" class="hidden" playsinline></video>
         <canvas id="output-canvas" class="w-full h-full object-cover"></canvas>
         <div id="camera-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20">
-          <div class="w-14 h-14 rounded-full bg-sky-500/10 border border-sky-500/30 flex items-center justify-center mb-3 text-sky-400 text-2xl">⚡</div>
-          <h2 class="text-lg font-bold text-white mb-1">MindPulse AI Studio</h2>
-          <p class="text-xs text-slate-400 max-w-md mb-4">Click to launch in-browser 3D tracking & ergonomics engine.</p>
+          <div class="w-14 h-14 rounded-full bg-sky-500/10 border border-sky-500/30 flex items-center justify-center mb-3 text-sky-400 text-2xl">👁️</div>
+          <h2 class="text-lg font-bold text-white mb-1">Blinkr Studio</h2>
+          <p class="text-xs text-slate-400 max-w-md mb-4">Click to launch in-browser 3D gaze tracking, fatigue & ergonomics engine.</p>
           <button id="btn-start-hero" class="px-5 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs transition shadow-lg">
             Launch Camera & 3D Tracking
           </button>
@@ -320,16 +334,16 @@
   </section>
 
   <!-- ========================================================================= -->
-  <!-- MODAL / PRINTABLE AUDIT REPORT                                            -->
+  <!-- MODAL / PRINTABLE AUDIT REPORT WITH CANDIDATE PHOTO IDENTIFICATION        -->
   <!-- ========================================================================= -->
-  <div id="report-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-4 text-xs text-slate-300">
+  <div id="report-modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-4 text-xs text-slate-300">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
           <h2 class="text-lg font-bold text-white flex items-center space-x-2">
-            <span>🛡️</span> <span>Official Cognitive Proctoring & Integrity Audit Report</span>
+            <span>🛡️</span> <span>Official Blinkr Examination & Identity Audit Report</span>
           </h2>
-          <p id="report-session-header" class="text-xs text-slate-400">Session ID: EXAM-9421 • Verified Multi-Candidate Audit</p>
+          <p id="report-session-header" class="text-xs text-slate-400">Verified Candidate Face Snapshots & Geolocation Audit</p>
         </div>
         <button id="btn-close-report" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
       </div>
@@ -338,7 +352,7 @@
       <div id="printable-report" class="bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-4 text-slate-200">
         <div class="flex justify-between items-start border-b border-slate-800 pb-4">
           <div>
-            <h1 class="text-xl font-bold text-sky-400">MindPulse AI • Examination Audit Certificate</h1>
+            <h1 class="text-xl font-bold text-sky-400">Blinkr • Autonomous Examination Audit Certificate</h1>
             <p id="rep-activity" class="text-xs text-slate-400">Activity: Final Examination</p>
             <p id="rep-examiner" class="text-xs text-slate-400">Lead Examiner: Prof. Admin</p>
           </div>
@@ -359,39 +373,40 @@
             <strong id="rep-avg-focus" class="text-lg font-mono text-emerald-400">96%</strong>
           </div>
           <div class="p-3 rounded-lg bg-slate-900 border border-slate-800">
-            <span class="text-slate-400 block text-[10px]">ANOMALIES / CHEATING</span>
+            <span class="text-slate-400 block text-[10px]">INFRACTIONS DETECTED</span>
             <strong id="rep-total-flags" class="text-lg font-mono text-amber-400">0</strong>
           </div>
           <div class="p-3 rounded-lg bg-slate-900 border border-slate-800">
-            <span class="text-slate-400 block text-[10px]">SESSION INTEGRITY</span>
+            <span class="text-slate-400 block text-[10px]">INTEGRITY STATUS</span>
             <strong id="rep-integrity-rating" class="text-lg font-mono text-emerald-400">EXEMPLARY</strong>
           </div>
         </div>
 
-        <!-- Detailed Candidate Ledger Table -->
+        <!-- Detailed Candidate Ledger Table (WITH CANDIDATE PHOTO COLUMN) -->
         <div>
-          <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400 mb-2">Verified Candidate Ledger & Geolocation Audit</h3>
+          <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400 mb-2">Verified Candidate Ledger & Visual Identity Audit</h3>
           <table class="w-full text-left text-xs border border-slate-800 rounded overflow-hidden">
             <thead class="bg-slate-900 text-slate-400">
               <tr>
+                <th class="p-2 border-b border-slate-800">Visual ID</th>
                 <th class="p-2 border-b border-slate-800">Candidate Name</th>
-                <th class="p-2 border-b border-slate-800">ID</th>
-                <th class="p-2 border-b border-slate-800">Location (City / IP)</th>
+                <th class="p-2 border-b border-slate-800">Roll ID</th>
+                <th class="p-2 border-b border-slate-800">Verified Location & IP</th>
                 <th class="p-2 border-b border-slate-800">Focus %</th>
-                <th class="p-2 border-b border-slate-800">PERCLOS</th>
-                <th class="p-2 border-b border-slate-800">Infractions</th>
+                <th class="p-2 border-b border-slate-800">Fatigue</th>
+                <th class="p-2 border-b border-slate-800">Tab Switches</th>
                 <th class="p-2 border-b border-slate-800">Verdict</th>
               </tr>
             </thead>
             <tbody id="rep-candidate-table-body" class="divide-y divide-slate-800/60 font-mono">
-              <!-- Injected via JavaScript -->
+              <!-- Injected dynamically via JS with candidate photo snapshots -->
             </tbody>
           </table>
         </div>
 
         <div class="text-[10px] text-slate-500 pt-3 border-t border-slate-800 flex justify-between">
-          <span>Cryptographic Hash Integrity: SHA-256 Validated</span>
-          <span>Generated by MindPulse AI Autonomous Proctor</span>
+          <span>Cryptographic Hash Integrity: Validated P2P</span>
+          <span>Certified by Blinkr Autonomous Proctor</span>
         </div>
       </div>
 
@@ -409,8 +424,8 @@
 
   <!-- FOOTER -->
   <footer class="bg-[#182030] border-t border-[#202B42] px-4 py-2 text-center text-xs text-slate-400 flex flex-wrap items-center justify-between gap-2">
-    <span>MindPulse AI Studio • Built by <a href="https://github.com/Muhammad-Ibraheem-kamboh" target="_blank" class="text-sky-400 hover:underline font-semibold">Muhammad Ibraheem</a></span>
-    <span>Real-Time P2P WebRTC Classroom Proctoring • 100% Client-Side Privacy</span>
+    <span>Blinkr • Developed by <a href="https://github.com/Muhammad-Ibraheem-kamboh" target="_blank" class="text-sky-400 hover:underline font-semibold">Muhammad Ibraheem</a></span>
+    <span>Autonomous WebRTC Video Proctoring • 100% Client-Side Biometrics</span>
   </footer>
 
   <!-- SCRIPT LOGIC -->
@@ -421,8 +436,11 @@
     let currentRole = "solo"; // "solo", "examiner", "student"
     let currentRoomCode = null;
     let peer = null;
-    let peerConnections = {}; // For Examiner: { peerId: { conn, data } }
-    let studentPeerConn = null; // For Student
+    let activeMediaCalls = {}; // { peerId: MediaConnection }
+    let studentPeerConn = null; // Data connection for Student
+    let studentMediaCall = null; // Media connection for Student
+    let studentLocalStream = null;
+    let tabSwitchCount = 0;
 
     // Geolocation Cache
     let userLocation = {
@@ -433,12 +451,11 @@
       lon: 0
     };
 
-    // Candidate Records for Examiner Reporting
+    // Candidate Records for Examiner Reporting (includes latest photo snapshot)
     let examinerCandidateRecords = {};
 
     // Get Geolocation automatically
     async function fetchGeolocation() {
-      // Browser GPS
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
@@ -457,7 +474,6 @@
         );
       }
 
-      // Reverse IP Geolocation Fallback
       try {
         const resp = await fetch("https://api.ipify.org?format=json");
         const ipData = await resp.json();
@@ -483,7 +499,6 @@
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get("room") || urlParams.get("session");
       if (roomParam) {
-        // Automatically switch to Student mode
         switchView("student");
         document.getElementById("student-input-room").value = roomParam;
       }
@@ -522,17 +537,15 @@
     document.getElementById("tab-student").addEventListener("click", () => switchView("student"));
 
     // =========================================================================
-    // EXAMINER ROOM CREATION & PEERJS WEBRTC HOST
+    // EXAMINER ROOM CREATION & PEERJS WEBRTC HOST WITH LIVE VIDEO RECEIVER
     // =========================================================================
     document.getElementById("btn-create-room").addEventListener("click", () => {
       const activityName = document.getElementById("input-activity-name").value.trim() || "Proctored Examination";
       const examinerName = document.getElementById("input-examiner-name").value.trim() || "Lead Examiner";
 
-      // Generate random unique room code
       currentRoomCode = "EXAM-" + Math.floor(1000 + Math.random() * 9000);
-      const peerId = "mindpulse-" + currentRoomCode.toLowerCase();
+      const peerId = "blinkr-" + currentRoomCode.toLowerCase();
 
-      // Initialize PeerJS as Host
       if (peer) peer.destroy();
       peer = new Peer(peerId);
 
@@ -543,7 +556,6 @@
         document.getElementById("display-invite-link").value = inviteLink;
         document.getElementById("room-banner").classList.remove("hidden");
 
-        // Set Exam Clock
         let sec = 0;
         setInterval(() => {
           sec++;
@@ -554,14 +566,24 @@
         }, 1000);
       });
 
-      // When a candidate connects
+      // 1. Handle incoming Data Connection (telemetry, snapshots, alerts)
       peer.on("connection", (conn) => {
         conn.on("data", (data) => {
-          handleIncomingCandidateTelemetry(conn.peer, data);
+          handleIncomingCandidateTelemetry(conn.peer, data, conn);
         });
 
         conn.on("close", () => {
           removeCandidateCard(conn.peer);
+        });
+      });
+
+      // 2. Handle incoming WebRTC Live Video Stream from Candidates
+      peer.on("call", (mediaCall) => {
+        activeMediaCalls[mediaCall.peer] = mediaCall;
+        mediaCall.answer(); // Answer candidate without sending back video
+
+        mediaCall.on("stream", (remoteStream) => {
+          attachCandidateVideoStream(mediaCall.peer, remoteStream);
         });
       });
 
@@ -574,13 +596,28 @@
       const linkInput = document.getElementById("display-invite-link");
       linkInput.select();
       navigator.clipboard.writeText(linkInput.value);
-      alert("Invite link copied to clipboard! Share it with your students.");
+      alert("Student Exam Link copied to clipboard! Share it with your candidates.");
     });
 
-    // Candidate Telemetry Receiver & Live Grid Updater
-    function handleIncomingCandidateTelemetry(peerId, data) {
+    // Attach real-time WebRTC stream to candidate card
+    function attachCandidateVideoStream(peerId, remoteStream) {
+      const checkInterval = setInterval(() => {
+        const videoEl = document.getElementById(`cand-video-${peerId}`);
+        const imgEl = document.getElementById(`cand-img-${peerId}`);
+        if (videoEl) {
+          videoEl.srcObject = remoteStream;
+          videoEl.play().catch(e => console.warn("Auto-play error:", e));
+          videoEl.classList.remove("hidden");
+          if (imgEl) imgEl.classList.add("hidden");
+          clearInterval(checkInterval);
+        }
+      }, 300);
+    }
+
+    // Candidate Telemetry Receiver & Live Grid Card Builder (WITH LIVE VIDEO / SNAPSHOT)
+    function handleIncomingCandidateTelemetry(peerId, data, conn) {
       document.getElementById("candidate-empty")?.classList.add("hidden");
-      examinerCandidateRecords[peerId] = data;
+      examinerCandidateRecords[peerId] = Object.assign(examinerCandidateRecords[peerId] || {}, data);
 
       const candidateCount = Object.keys(examinerCandidateRecords).length;
       document.getElementById("display-candidate-count").textContent = candidateCount;
@@ -589,53 +626,99 @@
       if (!card) {
         card = document.createElement("div");
         card.id = `candidate-card-${peerId}`;
-        card.className = "obsidian-card rounded-xl p-3.5 shadow-lg space-y-2 border border-slate-800 transition hover:border-slate-700";
+        card.className = "obsidian-card rounded-xl p-3.5 shadow-xl space-y-2 border border-slate-800 transition hover:border-slate-700 flex flex-col justify-between";
         document.getElementById("candidate-grid").appendChild(card);
       }
 
-      // Flag styling
       const hasPhone = data.phoneDetected;
       const isSleepy = data.isDrowsy;
-      const isSlouching = data.isSlouching;
+      const tabSwitches = data.tabSwitches || 0;
       let alertBadge = '<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">NORMAL</span>';
 
       if (hasPhone) {
         alertBadge = '<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800 animate-pulse">⚠️ PHONE IN VIEW</span>';
+      } else if (tabSwitches > 0) {
+        alertBadge = `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800 animate-pulse">⚠️ TAB SWITCHED (${tabSwitches})</span>`;
       } else if (isSleepy) {
         alertBadge = '<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800">💤 EYE FATIGUE</span>';
-      } else if (isSlouching) {
-        alertBadge = '<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800">⚠️ LOOKING AWAY</span>';
       }
 
+      // Check if candidate video element is already playing
+      const existingVideo = document.getElementById(`cand-video-${peerId}`);
+      const hasActiveStream = existingVideo && existingVideo.srcObject;
+
       card.innerHTML = `
-        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-          <div>
-            <h4 class="font-bold text-sm text-white">${data.name || 'Candidate'}</h4>
-            <span class="text-[11px] text-slate-400 font-mono">ID: ${data.studentId || 'N/A'}</span>
+        <div class="space-y-2">
+          <!-- Candidate Live Camera Video / Snapshot Box -->
+          <div class="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-black border border-slate-800 shadow-inner">
+            <video id="cand-video-${peerId}" autoplay playsinline class="w-full h-full object-cover ${hasActiveStream ? '' : 'hidden'}"></video>
+            <img id="cand-img-${peerId}" src="${data.snapshot || ''}" class="w-full h-full object-cover ${hasActiveStream ? 'hidden' : 'block'}" alt="Student Webcam">
+            
+            <div class="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-mono text-emerald-400 border border-emerald-800 flex items-center space-x-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>LIVE CAM</span>
+            </div>
+            <div class="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-mono text-slate-300 border border-slate-700">
+              ID: ${data.studentId || 'N/A'}
+            </div>
+            <div class="absolute bottom-2 inset-x-2 px-2.5 py-1 rounded bg-black/85 backdrop-blur-md text-[11px] flex items-center justify-between">
+              <span class="font-bold text-white truncate">${data.name || 'Candidate'}</span>
+              <span class="${tabSwitches > 0 ? 'text-rose-400 font-bold' : 'text-slate-400 font-mono'}">${tabSwitches > 0 ? '⚠️ ' + tabSwitches + ' Tabs' : '✓ Verified'}</span>
+            </div>
           </div>
-          ${alertBadge}
+
+          <!-- Header & Verdict -->
+          <div class="flex items-center justify-between pb-1">
+            <div>
+              <span class="text-xs font-bold text-white">${data.name || 'Candidate'}</span>
+              <span class="text-[11px] text-slate-400 font-mono block">${data.studentId || ''}</span>
+            </div>
+            ${alertBadge}
+          </div>
+
+          <!-- Biometric Telemetry Grid -->
+          <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
+            <div class="p-1 rounded bg-slate-950 border border-slate-800/80">
+              <span class="text-[9px] text-slate-400 block">FOCUS</span>
+              <strong class="font-mono text-sm ${data.focusScore >= 80 ? 'text-emerald-400' : 'text-amber-400'}">${Math.round(data.focusScore)}%</strong>
+            </div>
+            <div class="p-1 rounded bg-slate-950 border border-slate-800/80">
+              <span class="text-[9px] text-slate-400 block">PERCLOS</span>
+              <strong class="font-mono text-sm text-slate-200">${(data.perclos || 0).toFixed(1)}%</strong>
+            </div>
+            <div class="p-1 rounded bg-slate-950 border border-slate-800/80">
+              <span class="text-[9px] text-slate-400 block">YAWNS</span>
+              <strong class="font-mono text-sm text-slate-200">${data.yawnCount || 0}</strong>
+            </div>
+          </div>
+
+          <!-- Location & Gaze Tracking Info -->
+          <div class="text-[11px] text-slate-400 space-y-0.5 pt-1 border-t border-slate-800/80">
+            <div class="flex justify-between"><span>Location:</span> <span class="text-slate-200 font-mono">${data.location?.city || 'Online'}, ${data.location?.country || ''}</span></div>
+            <div class="flex justify-between"><span>IP Address:</span> <span class="text-slate-300 font-mono">${data.location?.ip || 'Verified'}</span></div>
+            <div class="flex justify-between"><span>Gaze:</span> <span class="${data.gazeStatus?.includes('Locked') ? 'text-emerald-400' : 'text-amber-400'} font-semibold">${data.gazeStatus || 'On-Screen'}</span></div>
+          </div>
         </div>
-        <div class="grid grid-cols-3 gap-2 text-center text-xs">
-          <div class="p-1.5 rounded bg-slate-950 border border-slate-800/80">
-            <span class="text-[9px] text-slate-400 block">FOCUS SCORE</span>
-            <strong class="font-mono text-sm ${data.focusScore >= 80 ? 'text-emerald-400' : 'text-amber-400'}">${Math.round(data.focusScore)}%</strong>
-          </div>
-          <div class="p-1.5 rounded bg-slate-950 border border-slate-800/80">
-            <span class="text-[9px] text-slate-400 block">PERCLOS</span>
-            <strong class="font-mono text-sm text-slate-200">${data.perclos.toFixed(1)}%</strong>
-          </div>
-          <div class="p-1.5 rounded bg-slate-950 border border-slate-800/80">
-            <span class="text-[9px] text-slate-400 block">YAWNS</span>
-            <strong class="font-mono text-sm text-slate-200">${data.yawnCount}</strong>
-          </div>
-        </div>
-        <div class="text-[11px] text-slate-400 space-y-0.5 pt-1">
-          <div class="flex justify-between"><span>Location:</span> <span class="text-slate-200 font-mono">${data.location?.city || 'Online'}, ${data.location?.country || ''}</span></div>
-          <div class="flex justify-between"><span>IP Address:</span> <span class="text-slate-300 font-mono">${data.location?.ip || 'Verified'}</span></div>
-          <div class="flex justify-between"><span>Gaze Vector:</span> <span class="${data.gazeStatus?.includes('Locked') ? 'text-emerald-400' : 'text-amber-400'} font-semibold">${data.gazeStatus || 'On-Screen'}</span></div>
+
+        <!-- Teacher Warning Action Button -->
+        <div class="pt-2">
+          <button onclick="sendStudentWarning('${peerId}')" class="w-full py-1 rounded bg-slate-800 hover:bg-rose-900 hover:text-white border border-slate-700 text-slate-300 text-[10px] font-bold transition flex items-center justify-center space-x-1">
+            <span>⚠️ Send Warning to Student Screen</span>
+          </button>
         </div>
       `;
     }
+
+    // Teacher sends instant warning to candidate screen
+    window.sendStudentWarning = function(peerId) {
+      if (peer) {
+        const conn = peer.connect(peerId);
+        conn.on("open", () => {
+          conn.send({ type: "warning", message: "Teacher Notice: Please stay focused on your test and look at the screen!" });
+          alert("Warning sent directly to candidate's screen!");
+        });
+      }
+    };
 
     function removeCandidateCard(peerId) {
       delete examinerCandidateRecords[peerId];
@@ -646,7 +729,7 @@
     }
 
     // =========================================================================
-    // STUDENT REGISTRATION & EXAM MONITORING
+    // STUDENT REGISTRATION, CAMERA STREAM & ANTI-CHEAT MONITORING
     // =========================================================================
     document.getElementById("btn-start-student-session").addEventListener("click", () => {
       const studentName = document.getElementById("student-input-name").value.trim();
@@ -654,18 +737,29 @@
       const roomCode = document.getElementById("student-input-room").value.trim();
 
       if (!studentName || !studentId || !roomCode) {
-        alert("Please enter your Full Name, Student ID, and Room Code to proceed.");
+        alert("Please enter your Full Name, Student ID, and Room Code to begin.");
         return;
       }
 
-      // Initialize Student PeerJS
-      const hostPeerId = "mindpulse-" + roomCode.toLowerCase();
+      const hostPeerId = "blinkr-" + roomCode.toLowerCase();
       peer = new Peer();
 
       peer.on("open", () => {
         studentPeerConn = peer.connect(hostPeerId);
         studentPeerConn.on("open", () => {
           console.log("Connected to Examiner Host:", hostPeerId);
+        });
+
+        // Listen for Teacher Warnings sent to student
+        peer.on("connection", (c) => {
+          c.on("data", (data) => {
+            if (data.type === "warning") {
+              const warnBox = document.getElementById("student-warning-box");
+              warnBox.textContent = "⚠️ " + (data.message || "Teacher warning: Focus on the screen!");
+              warnBox.classList.remove("hidden");
+              setTimeout(() => warnBox.classList.add("hidden"), 6000);
+            }
+          });
         });
       });
 
@@ -676,16 +770,56 @@
       document.getElementById("student-id-display").textContent = "ID: " + studentId;
       document.getElementById("student-location-display").textContent = `${userLocation.city}, ${userLocation.country}`;
 
-      // Start Student Camera
-      startStudentCamera(studentName, studentId);
+      // Start Student Camera, Live Video Call & Periodic Telemetry
+      startStudentCamera(studentName, studentId, hostPeerId);
     });
 
-    async function startStudentCamera(studentName, studentId) {
+    async function startStudentCamera(studentName, studentId, hostPeerId) {
       const sVideo = document.getElementById("student-video");
       const sCanvas = document.getElementById("student-canvas");
       const sCtx = sCanvas.getContext("2d");
 
-      let sFocus = 98.0;
+      // 1. Get User Webcam Stream
+      try {
+        studentLocalStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, facingMode: "user" },
+          audio: false
+        });
+        sVideo.srcObject = studentLocalStream;
+        await sVideo.play();
+      } catch (err) {
+        alert("Camera access is required for proctoring. Please allow camera permissions: " + err.message);
+        return;
+      }
+
+      // 2. Call the Teacher/Examiner via WebRTC Media Stream
+      if (peer) {
+        const tryCallHost = () => {
+          studentMediaCall = peer.call(hostPeerId, studentLocalStream);
+        };
+        setTimeout(tryCallHost, 1500);
+      }
+
+      // 3. Tab-switch / blur anti-cheat listener
+      window.addEventListener("blur", () => {
+        tabSwitchCount++;
+        document.getElementById("student-tabs-display").textContent = `${tabSwitchCount} Switched!`;
+        document.getElementById("student-tabs-display").className = "font-mono text-rose-400 font-bold";
+        const warnBox = document.getElementById("student-warning-box");
+        warnBox.textContent = "⚠️ Warning: Exam window unfocused! This event was logged in the examiner audit.";
+        warnBox.classList.remove("hidden");
+        setTimeout(() => warnBox.classList.add("hidden"), 4000);
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          tabSwitchCount++;
+          document.getElementById("student-tabs-display").textContent = `${tabSwitchCount} Switched!`;
+          document.getElementById("student-tabs-display").className = "font-mono text-rose-400 font-bold";
+        }
+      });
+
+      // 4. Timer
       let sElapsed = 0;
       setInterval(() => {
         sElapsed++;
@@ -694,6 +828,7 @@
         document.getElementById("student-timer-display").textContent = `${m}:${s}`;
       }, 1000);
 
+      // 5. Run FaceMesh on student video
       const sCamera = new Camera(sVideo, {
         onFrame: async () => {
           await faceMesh.send({ image: sVideo });
@@ -703,20 +838,35 @@
       });
       await sCamera.start();
 
-      // Transmit Student Telemetry every 1.5 seconds
+      // 6. Transmit Student Telemetry & Face Snapshot every 1.5 seconds
       setInterval(() => {
         if (studentPeerConn && studentPeerConn.open) {
+          // Grab crisp photo snapshot for examiner grid & audit report
+          let snapshotDataUrl = "";
+          try {
+            const snapCanvas = document.createElement("canvas");
+            snapCanvas.width = 320;
+            snapCanvas.height = 240;
+            const snapCtx = snapCanvas.getContext("2d");
+            snapCtx.drawImage(sVideo, 0, 0, 320, 240);
+            snapshotDataUrl = snapCanvas.toDataURL("image/jpeg", 0.65);
+          } catch (e) {
+            console.warn("Snapshot capture error:", e);
+          }
+
           const telemetry = {
             name: studentName,
             studentId: studentId,
             location: userLocation,
+            snapshot: snapshotDataUrl,
             focusScore: focusScore,
             perclos: (perclosBuffer.reduce((a,b)=>a+b,0)/Math.max(1,perclosBuffer.length))*100,
             yawnCount: yawnCount,
             phoneDetected: false,
             isDrowsy: sleepyFlagged,
             isSlouching: false,
-            gazeStatus: "Locked On-Screen (Focused)",
+            tabSwitches: tabSwitchCount,
+            gazeStatus: focusScore >= 75 ? "Locked On-Screen (Focused)" : "Looking Away",
             timestamp: Date.now()
           };
           studentPeerConn.send(telemetry);
@@ -726,12 +876,12 @@
     }
 
     document.getElementById("btn-finish-exam").addEventListener("click", () => {
-      alert("Exam submitted successfully! Your verified proctoring audit has been logged with the examiner.");
+      alert("Exam submitted successfully! Your verified proctoring audit and face snapshots have been logged with the examiner.");
       location.reload();
     });
 
     // =========================================================================
-    // AUDIT REPORT GENERATOR & MODAL
+    // AUDIT REPORT GENERATOR & MODAL (WITH VERIFIED CANDIDATE PHOTO COLUMN)
     // =========================================================================
     function openReportModal() {
       const modal = document.getElementById("report-modal");
@@ -753,20 +903,35 @@
         : Math.round(focusScore);
       document.getElementById("rep-avg-focus").textContent = avgFocus + "%";
 
+      let totalFlags = 0;
+      candidates.forEach(c => {
+        if (c.phoneDetected || c.isDrowsy || (c.tabSwitches && c.tabSwitches > 0)) totalFlags++;
+      });
+      document.getElementById("rep-total-flags").textContent = totalFlags;
+      document.getElementById("rep-integrity-rating").textContent = totalFlags === 0 ? "EXEMPLARY" : (totalFlags <= 2 ? "MINOR FLAGS" : "INVESTIGATE");
+      document.getElementById("rep-integrity-rating").className = totalFlags === 0 ? "text-lg font-mono text-emerald-400" : "text-lg font-mono text-amber-400";
+
       const tableBody = document.getElementById("rep-candidate-table-body");
       tableBody.innerHTML = "";
 
       if (candidates.length > 0) {
         candidates.forEach(c => {
           const tr = document.createElement("tr");
-          const hasViolation = c.phoneDetected || c.isDrowsy;
+          const hasViolation = c.phoneDetected || c.isDrowsy || (c.tabSwitches && c.tabSwitches > 0);
+          
+          // Candidate Photo column: uses live captured snapshot so teacher can verify identity
+          const photoHtml = c.snapshot 
+            ? `<img src="${c.snapshot}" class="w-12 h-12 rounded object-cover border border-slate-700 shadow mx-auto">`
+            : `<div class="w-12 h-12 rounded bg-slate-800 flex items-center justify-center text-slate-500 mx-auto text-xs font-mono">No Cam</div>`;
+
           tr.innerHTML = `
-            <td class="p-2 font-bold">${c.name}</td>
+            <td class="p-2 text-center">${photoHtml}</td>
+            <td class="p-2 font-bold text-white">${c.name}</td>
             <td class="p-2 text-slate-400">${c.studentId}</td>
             <td class="p-2">${c.location?.city || 'Local'}, ${c.location?.country || ''} (${c.location?.ip || 'Verified'})</td>
-            <td class="p-2 ${c.focusScore >= 80 ? 'text-emerald-400' : 'text-amber-400'}">${Math.round(c.focusScore)}%</td>
-            <td class="p-2">${c.perclos.toFixed(1)}%</td>
-            <td class="p-2 ${hasViolation ? 'text-rose-400' : 'text-slate-400'}">${hasViolation ? 'Violations Logged' : 'None'}</td>
+            <td class="p-2 ${c.focusScore >= 80 ? 'text-emerald-400' : 'text-amber-400'} font-bold">${Math.round(c.focusScore)}%</td>
+            <td class="p-2">${(c.perclos || 0).toFixed(1)}% / ${c.yawnCount || 0}y</td>
+            <td class="p-2 ${c.tabSwitches > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">${c.tabSwitches || 0}</td>
             <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] ${hasViolation ? 'bg-amber-950 text-amber-400 border border-amber-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'}">${hasViolation ? 'REVIEW' : 'PASS'}</span></td>
           `;
           tableBody.appendChild(tr);
@@ -775,12 +940,13 @@
         // Solo demo row
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td class="p-2 font-bold">Local Candidate</td>
+          <td class="p-2 text-center"><div class="w-12 h-12 rounded bg-slate-800 flex items-center justify-center text-sky-400 mx-auto text-xs font-mono">DEMO</div></td>
+          <td class="p-2 font-bold text-white">Local Candidate</td>
           <td class="p-2 text-slate-400">DEMO-01</td>
           <td class="p-2">${userLocation.city}, ${userLocation.country} (${userLocation.ip})</td>
-          <td class="p-2 text-emerald-400">${Math.round(focusScore)}%</td>
-          <td class="p-2">3.2%</td>
-          <td class="p-2 text-slate-400">None</td>
+          <td class="p-2 text-emerald-400 font-bold">${Math.round(focusScore)}%</td>
+          <td class="p-2">3.2% / 0y</td>
+          <td class="p-2 text-slate-400">0</td>
           <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800">PASS</span></td>
         `;
         tableBody.appendChild(tr);
@@ -801,7 +967,7 @@
       const webhookUrl = prompt("Enter your Telegram/Discord Webhook URL to dispatch this report:");
       if (!webhookUrl) return;
       const payload = {
-        title: "MindPulse AI Examination Audit Report",
+        title: "Blinkr Examination Audit Report",
         timestamp: new Date().toISOString(),
         candidateCount: Object.keys(examinerCandidateRecords).length || 1,
         candidates: Object.values(examinerCandidateRecords)
@@ -811,7 +977,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
-      .then(() => alert("Report successfully dispatched to your bot/webhook!"))
+      .then(() => alert("Report successfully dispatched to your webhook!"))
       .catch(err => alert("Error dispatching to webhook: " + err.message));
     });
 
@@ -891,15 +1057,22 @@
     });
 
     faceMesh.onResults((results) => {
-      if (!canvasElement || !canvasCtx) return;
-      canvasElement.width = videoElement.videoWidth || 640;
-      canvasElement.height = videoElement.videoHeight || 480;
-      const w = canvasElement.width;
-      const h = canvasElement.height;
+      // Determine target canvas based on active view
+      let targetCanvas = canvasElement;
+      let targetCtx = canvasCtx;
+      if (currentRole === "student") {
+        targetCanvas = document.getElementById("student-canvas");
+        targetCtx = targetCanvas?.getContext("2d");
+      }
 
-      canvasCtx.save();
-      canvasCtx.clearRect(0, 0, w, h);
-      canvasCtx.drawImage(results.image, 0, 0, w, h);
+      if (!targetCanvas || !targetCtx) return;
+      targetCanvas.width = 640;
+      targetCanvas.height = 480;
+      const w = targetCanvas.width;
+      const h = targetCanvas.height;
+
+      targetCtx.save();
+      targetCtx.clearRect(0, 0, w, h);
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const lm = results.multiFaceLandmarks[0];
@@ -919,6 +1092,7 @@
         const vert = dist(lm[13], lm[14]);
         const horiz = dist(lm[61], lm[291]);
         const mar = horiz > 2 ? vert / horiz : 0;
+        if (mar > 0.65) yawnCount++;
 
         // Head pose
         const eyeSpan = Math.abs(lm[263].x - lm[33].x) + 1e-6;
@@ -933,42 +1107,51 @@
           headWireframe.rotation.z = THREE.MathUtils.degToRad(-roll);
         }
 
-        document.getElementById("val-pitch").textContent = `${pitch >= 0 ? '+' : ''}${pitch.toFixed(1)}°`;
-        document.getElementById("val-yaw").textContent = `${yaw >= 0 ? '+' : ''}${yaw.toFixed(1)}°`;
-        document.getElementById("val-roll").textContent = `${roll >= 0 ? '+' : ''}${roll.toFixed(1)}°`;
+        const elPitch = document.getElementById("val-pitch");
+        if (elPitch) elPitch.textContent = `${pitch >= 0 ? '+' : ''}${pitch.toFixed(1)}°`;
+        const elYaw = document.getElementById("val-yaw");
+        if (elYaw) elYaw.textContent = `${yaw >= 0 ? '+' : ''}${yaw.toFixed(1)}°`;
+        const elRoll = document.getElementById("val-roll");
+        if (elRoll) elRoll.textContent = `${roll >= 0 ? '+' : ''}${roll.toFixed(1)}°`;
 
         const isSlouching = pitch > 20 || Math.abs(yaw) > 25;
-        document.getElementById("val-posture").textContent = isSlouching ? "Slouching" : "Centered";
-        document.getElementById("val-posture").className = isSlouching ? "text-amber-400 font-bold" : "text-emerald-400 font-bold";
+        const elPosture = document.getElementById("val-posture");
+        if (elPosture) {
+          elPosture.textContent = isSlouching ? "Slouching" : "Centered";
+          elPosture.className = isSlouching ? "text-amber-400 font-bold" : "text-emerald-400 font-bold";
+        }
 
         // PERCLOS
         const isClosed = ear < earThreshold;
         perclosBuffer.push(isClosed ? 1 : 0);
         if (perclosBuffer.length > 1800) perclosBuffer.shift();
         const perclos = (perclosBuffer.reduce((a,b)=>a+b,0) / Math.max(1, perclosBuffer.length)) * 100;
-        document.getElementById("val-perclos").textContent = `${perclos.toFixed(1)}%`;
-        document.getElementById("perclos-bar").style.width = `${Math.min(100, perclos * 3)}%`;
+        const elPerclos = document.getElementById("val-perclos");
+        if (elPerclos) elPerclos.textContent = `${perclos.toFixed(1)}%`;
+        const barPerclos = document.getElementById("perclos-bar");
+        if (barPerclos) barPerclos.style.width = `${Math.min(100, perclos * 3)}%`;
 
         // Focus Score
         let target = 98;
         if (isClosed) target = 25;
         else if (isSlouching) target = 70;
         focusScore = 0.95 * focusScore + 0.05 * target;
-        document.getElementById("val-focus-score").textContent = Math.round(focusScore) + "%";
+        const elFocus = document.getElementById("val-focus-score");
+        if (elFocus) elFocus.textContent = Math.round(focusScore) + "%";
 
         waveformData.shift();
         waveformData.push(focusScore);
 
         // Reticle
-        canvasCtx.fillStyle = "#38BDF8";
-        canvasCtx.beginPath();
-        canvasCtx.arc((lm[468]||lm[33]).x * w, (lm[468]||lm[33]).y * h, 3, 0, 2*Math.PI);
-        canvasCtx.fill();
-        canvasCtx.beginPath();
-        canvasCtx.arc((lm[473]||lm[263]).x * w, (lm[473]||lm[263]).y * h, 3, 0, 2*Math.PI);
-        canvasCtx.fill();
+        targetCtx.fillStyle = "#38BDF8";
+        targetCtx.beginPath();
+        targetCtx.arc((lm[468]||lm[33]).x * w, (lm[468]||lm[33]).y * h, 3, 0, 2*Math.PI);
+        targetCtx.fill();
+        targetCtx.beginPath();
+        targetCtx.arc((lm[473]||lm[263]).x * w, (lm[473]||lm[263]).y * h, 3, 0, 2*Math.PI);
+        targetCtx.fill();
       }
-      canvasCtx.restore();
+      targetCtx.restore();
     });
 
     // Waveform

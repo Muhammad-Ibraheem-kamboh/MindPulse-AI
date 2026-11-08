@@ -1,5 +1,5 @@
 """
-MindPulse AI - Next-Gen Student Cognitive Focus, 3D Biometrics & Ergonomics Studio
+Blinkr - Next-Gen Student Attention, 3D Biometrics & Ergonomics Studio
 100% On-Device AI • Zero Cloud Telemetry • Air-Gapped Privacy Architecture
 
 Upgraded Controls:
@@ -311,7 +311,7 @@ def render_3d_wireframe_gizmo(draw, center_x: int, center_y: int, rmat, scale=1.
 # LOCAL CERTIFIED PROCTORING AUDIT REPORT GENERATOR
 # ==============================================================================
 def export_desktop_audit_report(focus_score, perclos_pct, yawn_count, phone_count, elapsed_sec, bpm):
-    report_file = Path(__file__).resolve().parent / "MindPulse_Audit_Report.html"
+    report_file = Path(__file__).resolve().parent / "Blinkr_Audit_Report.html"
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     mins = elapsed_sec // 60
     secs = elapsed_sec % 60
@@ -324,7 +324,7 @@ def export_desktop_audit_report(focus_score, perclos_pct, yawn_count, phone_coun
 <html>
 <head>
   <meta charset="utf-8">
-  <title>MindPulse AI - Session Integrity Audit Certificate</title>
+  <title>Blinkr - Session Integrity Audit Certificate</title>
   <style>
     body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #080C14; color: #F8FAFC; margin: 0; padding: 30px; }}
     .card {{ background: #111622; border: 1px solid #202B42; border-radius: 12px; padding: 24px; max-width: 800px; margin: 0 auto; }}
@@ -345,7 +345,7 @@ def export_desktop_audit_report(focus_score, perclos_pct, yawn_count, phone_coun
   <div class="card">
     <div class="header">
       <div>
-        <h1 style="margin: 0; font-size: 22px; color: #38BDF8;">⚡ MindPulse AI • Session Integrity Certificate</h1>
+        <h1 style="margin: 0; font-size: 22px; color: #38BDF8;">👁️ Blinkr • Session Integrity Certificate</h1>
         <p style="margin: 4px 0 0 0; font-size: 13px; color: #94A3B8;">Candidate Assessment & Ergonomic Audit Log</p>
       </div>
       <div style="text-align: right;">
@@ -463,7 +463,7 @@ def on_mouse_click(event, x, y, flags, param):
 # MAIN STUDIO APPLICATION
 # ==============================================================================
 def main():
-    parser = argparse.ArgumentParser(description="MindPulse AI - 3D Cognitive Focus Studio")
+    parser = argparse.ArgumentParser(description="Blinkr - 3D Cognitive Focus Studio")
     parser.add_argument("--camera", type=int, default=0)
     parser.add_argument("--closed-seconds", type=float, default=2.0)
     parser.add_argument("--phone-seconds", type=float, default=1.2)
@@ -530,7 +530,7 @@ def main():
     fps_frames = 0
     fps_display = 30.0
 
-    window_title = "MindPulse AI - 3D Cognitive Focus & Biometric Studio"
+    window_title = "Blinkr - 3D Cognitive Focus & Biometric Studio"
 
     with ExitStack() as stack:
         face_detector, phone_detector = create_vision_detectors(models_dir, stack)
@@ -803,7 +803,7 @@ def main():
 
             dot_color = Theme.ACCENT_EMERALD if focus_score >= 80 else (Theme.ACCENT_AMBER if focus_score >= 50 else Theme.ACCENT_ROSE)
             draw.ellipse([16, 20, 28, 32], fill=dot_color)
-            draw.text((36, 17), "MINDPULSE AI", font=fonts.f_brand, fill=Theme.ACCENT_CYAN)
+            draw.text((36, 17), "BLINKR", font=fonts.f_brand, fill=Theme.ACCENT_CYAN)
 
             # CLICKABLE BUTTONS IN HEADER
             # 1. Sound Button

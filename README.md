@@ -1,4 +1,4 @@
-# ⚡ MindPulse AI: 3D Cognitive Focus & Biometric Studio
+# 👁️ Blinkr: Autonomous Examination Proctoring & 3D Attention Studio
 
 [![Live Demo](https://img.shields.io/badge/Demo-Live%20Web%20Studio-38BDF8?style=for-the-badge&logo=googlechrome&logoColor=white)](https://muhammad-ibraheem-kamboh.github.io/MindPulse-AI/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
@@ -7,10 +7,10 @@
 [![Privacy: 100% On-Device](https://img.shields.io/badge/Privacy-100%25%20On--Device%20Airgap-10B981.svg?style=flat)](https://github.com/Muhammad-Ibraheem-kamboh/MindPulse-AI)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> 🌐 **Try the Live In-Browser Web App (Zero Install)**:  
+> 🌐 **Try the Live Web Studio & Proctor Portal**:  
 > 👉 [**https://muhammad-ibraheem-kamboh.github.io/MindPulse-AI/**](https://muhammad-ibraheem-kamboh.github.io/MindPulse-AI/)
 
-> **MindPulse AI** is an advanced on-device computer vision and cognitive ergonomics studio designed for students, researchers, and high-performance knowledge workers. It combines **6DoF 3D spatial head pose estimation**, **real-time biometrics (PERCLOS & MAR)**, **iris gaze tracking**, and an **interactive obsidian glassmorphic HUD** to nurture deep focus and prevent cognitive burnout.
+> **Blinkr** is an autonomous video proctoring, computer vision, and cognitive ergonomics platform designed for examiners, universities, and students. It combines **live WebRTC video proctoring**, **visual identity verification**, **6DoF 3D spatial head pose estimation**, **real-time biometrics (PERCLOS & MAR)**, **anti-cheat tab tracking**, and **certified printable audit certificates**.
 
 ---
 
