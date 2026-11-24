@@ -1,4 +1,8 @@
-# 👁️ Blinkr: Autonomous Examination Proctoring & 3D Attention Studio
+# 👁️ MindPulse AI: 3D Cognitive Attention & Proctoring Studio
+
+<p align="center">
+  <img src="preview.png" alt="MindPulse AI Dashboard Interface" width="850">
+</p>
 
 [![Live Demo](https://img.shields.io/badge/Demo-Live%20Web%20Studio-38BDF8?style=for-the-badge&logo=googlechrome&logoColor=white)](https://muhammad-ibraheem-kamboh.github.io/MindPulse-AI/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
